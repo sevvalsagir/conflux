@@ -18,7 +18,7 @@ def register(body: schemas.RegisterRequest, db: Session = Depends(get_db)):
     user = models.User(
         email=body.email,
         name=body.name,
-        password_hash=hash_password(body.password),
+        hashed_password=hash_password(body.password),
     )
     db.add(user)
     db.commit()
@@ -31,7 +31,7 @@ def register(body: schemas.RegisterRequest, db: Session = Depends(get_db)):
 @router.post("/login", response_model=schemas.TokenResponse)
 def login(body: schemas.LoginRequest, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == body.email).first()
-    if not user or not verify_password(body.password, user.password_hash):
+    if not user or not verify_password(body.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
     token = create_access_token(user.id)
