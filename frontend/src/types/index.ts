@@ -1,0 +1,131 @@
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
+export interface User {
+  id: number
+  email: string
+  name: string
+  created_at: string
+}
+
+export type UserRole = 'manager' | 'member' | 'stakeholder'
+
+// ─── Project ──────────────────────────────────────────────────────────────────
+
+export interface ProjectMember {
+  id: number
+  user_id: number
+  role: UserRole
+  user: User
+}
+
+export interface Project {
+  id: number
+  name: string
+  description: string
+  owner_id: number
+  is_archived: boolean
+  created_at: string
+  members: ProjectMember[]
+}
+
+// ─── Baseline ─────────────────────────────────────────────────────────────────
+
+export type FeatureStatus = 'planned' | 'in_progress' | 'completed' | 'removed'
+
+export interface Feature {
+  id: number
+  name: string
+  description: string
+  effort_days: number
+  status: FeatureStatus
+  created_at: string
+}
+
+export interface Milestone {
+  id: number
+  name: string
+  due_date: string
+  is_completed: boolean
+  completed_at: string | null
+  created_at: string
+}
+
+export interface Baseline {
+  id: number
+  project_id: number
+  is_locked: boolean
+  locked_at: string | null
+  features: Feature[]
+  milestones: Milestone[]
+  created_at: string
+}
+
+// ─── Change Requests ──────────────────────────────────────────────────────────
+
+export type CRStatus =
+  | 'draft'
+  | 'submitted'
+  | 'analyzing'
+  | 'under_review'
+  | 'approved'
+  | 'rejected'
+  | 'deferred'
+  | 'in_progress'
+  | 'done'
+
+export type CRType =
+  | 'feature_add'
+  | 'feature_remove'
+  | 'feature_modify'
+  | 'timeline_change'
+  | 'scope_change'
+  | 'other'
+
+export interface AIAnalysis {
+  timeline_impact: string
+  risk_score: number
+  risk_level: 'Low' | 'Medium' | 'High'
+  dependency_analysis: string
+  alternative_suggestions: string
+}
+
+export interface CRComment {
+  id: number
+  user_id: number
+  text: string
+  created_at: string
+  user: User
+}
+
+export interface ChangeRequest {
+  id: number
+  project_id: number
+  title: string
+  description: string
+  cr_type: CRType
+  status: CRStatus
+  ai_analysis: AIAnalysis | null
+  decision_note: string | null
+  decided_at: string | null
+  created_at: string
+  updated_at: string
+  submitted_by: User
+  decided_by: User | null
+  comments: CRComment[]
+}
+
+// ─── Drift ────────────────────────────────────────────────────────────────────
+
+export type DriftLevel = 'Low' | 'Moderate' | 'High' | 'Critical'
+
+export interface DriftData {
+  feature_drift: number
+  effort_drift: number
+  timeline_drift: number
+  overall_drift: number
+  drift_level: DriftLevel
+  total_crs: number
+  approved_crs: number
+  pending_crs: number
+  rejected_crs: number
+}
