@@ -176,11 +176,22 @@ async def _run_ai_analysis(cr_id: int, project_id: int):
         if not cr:
             return
 
-        # Get baseline context
+        # Get baseline context — send actual features & milestones to AI
         baseline = db.query(models.Baseline).filter(
             models.Baseline.project_id == project_id
         ).first()
-        context = baseline.snapshot or {} if baseline else {}
+        context = {}
+        if baseline:
+            context = {
+                "features": [
+                    {"name": f.name, "effort_days": f.effort_days, "status": f.status.value}
+                    for f in baseline.features
+                ],
+                "milestones": [
+                    {"name": m.name, "due_date": m.due_date}
+                    for m in baseline.milestones
+                ],
+            }
 
         # Call AI
         analysis = await analyze_change_request(cr.title, cr.description, context)
