@@ -604,11 +604,13 @@ export function RoadmapPage() {
                     )}
                   </div>
 
-                  {/* Hover tooltip */}
+                  {/* Hover tooltip — pointer-events enabled so links are clickable */}
                   {isHovered && (
                     <div
-                      className="absolute z-50 pointer-events-none"
+                      className="absolute z-50"
                       style={{ top: '110%', left: Math.max(left, 0), minWidth: 220, maxWidth: 280 }}
+                      onMouseEnter={() => setHoveredId(item.id)}
+                      onMouseLeave={() => setHoveredId(null)}
                     >
                       <div className="bg-bg-surface dark:bg-bg-elevated border border-bg-border rounded-xl p-3 shadow-xl">
                         <div className="flex items-start justify-between gap-2 mb-1">
@@ -617,7 +619,6 @@ export function RoadmapPage() {
                             <Link
                               to={`/projects/${id}/change-requests/${Math.abs(item.crId ?? 0)}`}
                               className="text-[10px] shrink-0 bg-amber-400/15 text-amber-500 dark:text-amber-400 border border-amber-400/30 px-1.5 py-0.5 rounded-full font-medium hover:bg-amber-400/25 transition-colors"
-                              onClick={e => e.stopPropagation()}
                             >
                               View CR →
                             </Link>
