@@ -39,6 +39,7 @@ export interface Feature {
   effort_days: number
   status: FeatureStatus
   start_date?: string | null
+  completed_at?: string | null
   assignee_ids?: number[]
   created_at: string
 }
@@ -109,6 +110,8 @@ export interface ChangeRequest {
   ai_analysis: AIAnalysis | null
   decision_note: string | null
   decided_at: string | null
+  roadmap_start: string | null
+  roadmap_end: string | null
   created_at: string
   updated_at: string
   submitted_by: User

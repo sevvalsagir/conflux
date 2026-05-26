@@ -76,6 +76,7 @@ class FeatureUpdate(BaseModel):
     effort_days: Optional[float] = None
     status: Optional[FeatureStatus] = None
     start_date: Optional[str] = None
+    completed_at: Optional[str] = None
     assignee_ids: Optional[List[int]] = None
 
 class FeatureOut(BaseModel):
@@ -85,6 +86,7 @@ class FeatureOut(BaseModel):
     effort_days: float
     status: FeatureStatus
     start_date: Optional[str] = None
+    completed_at: Optional[str] = None
     assignee_ids: List[int] = []
     created_at: datetime
 
@@ -153,6 +155,10 @@ class CRCommentOut(BaseModel):
 class CRCommentCreate(BaseModel):
     text: str
 
+class CRRoadmapUpdate(BaseModel):
+    roadmap_start: Optional[str] = None
+    roadmap_end:   Optional[str] = None
+
 class ChangeRequestOut(BaseModel):
     id: int
     project_id: int
@@ -163,6 +169,8 @@ class ChangeRequestOut(BaseModel):
     ai_analysis: Optional[Any] = None
     decision_note: Optional[str] = None
     decided_at: Optional[datetime] = None
+    roadmap_start: Optional[str] = None
+    roadmap_end:   Optional[str] = None
     created_at: datetime
     updated_at: datetime
     submitted_by: UserOut

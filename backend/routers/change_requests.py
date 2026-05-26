@@ -135,6 +135,26 @@ async def update_cr_status(
     return cr
 
 
+@router.patch("/{cr_id}/roadmap", response_model=schemas.ChangeRequestOut)
+def update_cr_roadmap(
+    project_id: int,
+    cr_id: int,
+    body: schemas.CRRoadmapUpdate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update roadmap display dates for a CR (start / end for the Gantt bar)."""
+    require_member_or_manager(project_id, current_user, db)
+    cr = _get_cr_or_404(cr_id, project_id, db)
+    if body.roadmap_start is not None:
+        cr.roadmap_start = body.roadmap_start or None   # "" clears the field
+    if body.roadmap_end is not None:
+        cr.roadmap_end = body.roadmap_end or None
+    db.commit()
+    db.refresh(cr)
+    return cr
+
+
 @router.post("/{cr_id}/comments", response_model=schemas.CRCommentOut)
 def add_comment(
     project_id: int,

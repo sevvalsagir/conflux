@@ -6,6 +6,10 @@ import { AppLayout } from '../components/layout/AppLayout'
 import { PageSpinner } from '../components/ui/Spinner'
 import type { Feature, FeatureStatus, ChangeRequest, ProjectMember, CRStatus } from '../types'
 
+function toISODate(d: Date) {
+  return d.toISOString().split('T')[0]
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface RoadmapItem {
@@ -91,10 +95,10 @@ function buildRoadmapItems(
 
     let end = addDays(start, Math.max(f.effort_days, 1))
 
-    // Completed = bar ends today (actual finish date), never a future estimate
+    // Completed: use stored completed_at date, or fall back to today
     if (f.status === 'completed') {
-      end = new Date(today)
-      if (end <= start) end = addDays(start, 1) // guard: start can't be after end
+      end = f.completed_at ? new Date(f.completed_at) : new Date(today)
+      if (end <= start) end = addDays(start, 1)
     }
 
     laneEnd[lane] = addDays(end, 2)
@@ -121,14 +125,18 @@ function buildRoadmapItems(
   )
   crItems.forEach((cr, i) => {
     const refDate = cr.decided_at ? new Date(cr.decided_at) : new Date()
-    const start = addDays(refDate, 5)
+    const start = cr.roadmap_start ? new Date(cr.roadmap_start) : addDays(refDate, 5)
     const effort = cr.ai_analysis ? 10 : 8
-    let end = addDays(start, effort)
     const featureStatus = crStatusToFeatureStatus(cr.status)
-    if (featureStatus === 'completed') {
+    let end: Date
+    if (cr.roadmap_end) {
+      end = new Date(cr.roadmap_end)
+    } else if (featureStatus === 'completed') {
       end = new Date(today)
-      if (end <= start) end = addDays(start, 1)
+    } else {
+      end = addDays(start, effort)
     }
+    if (end <= start) end = addDays(start, 1)
     const assigned: ProjectMember[] = members.length > 0 ? [members[i % members.length]] : []
     items.push({
       id: -(cr.id), name: cr.title, description: cr.description, effort_days: effort,
@@ -235,6 +243,13 @@ function SidePanel({
 }) {
   const [saving, setSaving] = useState(false)
   const [showAssignees, setShowAssignees] = useState(false)
+  // completion date picker state (features)
+  const [pendingComplete, setPendingComplete] = useState(false)
+  const [completionDate, setCompletionDate] = useState(toISODate(new Date()))
+  // CR "mark done" date picker
+  const [pendingCRDone, setPendingCRDone] = useState(false)
+  const [crDoneDate, setCrDoneDate] = useState(toISODate(new Date()))
+
   const assigneesRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -247,7 +262,7 @@ function SidePanel({
     return () => document.removeEventListener('mousedown', h)
   }, [showAssignees])
 
-  const patchFeature = async (data: Partial<{ status: FeatureStatus; start_date: string | null; assignee_ids: number[] }>) => {
+  const patchFeature = async (data: Partial<{ status: FeatureStatus; start_date: string | null; completed_at: string | null; assignee_ids: number[] }>) => {
     setSaving(true)
     try {
       await baselineApi.updateFeature(projectId, item.id, data)
@@ -270,6 +285,37 @@ function SidePanel({
     } finally {
       setSaving(false)
     }
+  }
+
+  const patchCRRoadmap = async (data: Partial<{ roadmap_start: string | null; roadmap_end: string | null }>) => {
+    if (!latestCR) return
+    setSaving(true)
+    try {
+      await crApi.updateRoadmap(projectId, latestCR.id, data)
+      onRefreshCRs()
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to update.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Confirm "Completed" — pin start_date if not set, save completed_at
+  const confirmComplete = async () => {
+    const pinnedStart = latestFeature?.start_date ?? toISODate(item.startDate)
+    await patchFeature({
+      status: 'completed',
+      completed_at: completionDate,
+      start_date: pinnedStart,
+    })
+    setPendingComplete(false)
+  }
+
+  // Confirm "Mark Done" for CR
+  const confirmCRDone = async () => {
+    await patchCR('done')
+    await patchCRRoadmap({ roadmap_end: crDoneDate })
+    setPendingCRDone(false)
   }
 
   const feature = latestFeature
@@ -330,29 +376,68 @@ function SidePanel({
             <p className="text-sm text-gray-400 leading-relaxed">{item.description}</p>
           )}
 
-          {/* Status */}
+          {/* ── Status ── */}
           <div>
             <p className="text-[11px] text-gray-500 font-semibold uppercase tracking-wider mb-2.5">Status</p>
+
             {!item.isFromCR ? (
-              <div className="grid grid-cols-2 gap-1.5">
-                {STATUS_OPTIONS.map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => feature?.status !== opt.value && patchFeature({ status: opt.value })}
-                    disabled={feature?.status === opt.value}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
-                      feature?.status === opt.value
-                        ? opt.active
-                        : 'border-bg-border text-gray-500 hover:border-gray-500 hover:text-gray-300 cursor-pointer'
-                    }`}
-                  >
-                    <span className="text-base leading-none">{opt.dot}</span>
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {STATUS_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => {
+                        if (feature?.status === opt.value) return
+                        if (opt.value === 'completed') {
+                          setCompletionDate(toISODate(new Date()))
+                          setPendingComplete(true)
+                        } else {
+                          setPendingComplete(false)
+                          patchFeature({ status: opt.value })
+                        }
+                      }}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
+                        feature?.status === opt.value
+                          ? opt.active
+                          : 'border-bg-border text-gray-500 hover:border-gray-500 hover:text-gray-300 cursor-pointer'
+                      }`}
+                    >
+                      <span className="text-base leading-none">{opt.dot}</span>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Completion date confirmation */}
+                {pendingComplete && (
+                  <div className="mt-3 p-3 rounded-xl bg-emerald-900/20 border border-emerald-500/30">
+                    <p className="text-xs text-emerald-300 font-medium mb-2">Completion date</p>
+                    <input
+                      type="date"
+                      value={completionDate}
+                      onChange={e => setCompletionDate(e.target.value)}
+                      max={toISODate(new Date())}
+                      className="w-full bg-bg-elevated border border-bg-border rounded-lg px-3 py-2 text-sm text-gray-200 outline-none mb-2"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={confirmComplete}
+                        className="flex-1 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-500 transition-colors"
+                      >
+                        ✓ Confirm
+                      </button>
+                      <button
+                        onClick={() => setPendingComplete(false)}
+                        className="px-3 py-1.5 rounded-lg border border-bg-border text-gray-400 text-xs hover:text-gray-200 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
-              /* CR status controls */
+              /* CR status */
               <div className="flex flex-col gap-2">
                 <div className={`px-3 py-2.5 rounded-lg border text-sm font-medium ${
                   cr?.status === 'done'
@@ -373,9 +458,9 @@ function SidePanel({
                       Start Work
                     </button>
                   )}
-                  {cr?.status !== 'done' && (
+                  {cr?.status !== 'done' && !pendingCRDone && (
                     <button
-                      onClick={() => patchCR('done')}
+                      onClick={() => { setCrDoneDate(toISODate(new Date())); setPendingCRDone(true) }}
                       className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/40 bg-emerald-900/20 text-emerald-300 text-xs font-medium hover:bg-emerald-900/40 transition-colors"
                     >
                       <span className="text-base leading-none">●</span>
@@ -383,47 +468,105 @@ function SidePanel({
                     </button>
                   )}
                   {cr?.status === 'done' && (
-                    <div className="flex-1 text-center text-xs text-emerald-400 py-2">
-                      ✓ Completed
-                    </div>
+                    <div className="flex-1 text-center text-xs text-emerald-400 py-2">✓ Completed</div>
                   )}
                 </div>
+
+                {/* CR done date confirmation */}
+                {pendingCRDone && (
+                  <div className="p-3 rounded-xl bg-emerald-900/20 border border-emerald-500/30">
+                    <p className="text-xs text-emerald-300 font-medium mb-2">Completion date</p>
+                    <input
+                      type="date"
+                      value={crDoneDate}
+                      onChange={e => setCrDoneDate(e.target.value)}
+                      max={toISODate(new Date())}
+                      className="w-full bg-bg-elevated border border-bg-border rounded-lg px-3 py-2 text-sm text-gray-200 outline-none mb-2"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={confirmCRDone}
+                        className="flex-1 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-500 transition-colors"
+                      >
+                        ✓ Confirm
+                      </button>
+                      <button
+                        onClick={() => setPendingCRDone(false)}
+                        className="px-3 py-1.5 rounded-lg border border-bg-border text-gray-400 text-xs hover:text-gray-200 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* Timeline */}
+          {/* ── Timeline ── */}
           <div>
             <p className="text-[11px] text-gray-500 font-semibold uppercase tracking-wider mb-2.5">Timeline</p>
             <div className="bg-bg-elevated rounded-xl border border-bg-border divide-y divide-bg-border">
-              {!item.isFromCR && (
-                <div className="flex items-center gap-3 px-4 py-3">
-                  <svg className="w-4 h-4 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <div className="flex-1">
-                    <p className="text-[10px] text-gray-500 mb-0.5">Start Date</p>
+
+              {/* Start date — always editable for both features and CRs */}
+              <div className="flex items-center gap-3 px-4 py-3">
+                <svg className="w-4 h-4 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-[10px] text-gray-500 mb-0.5">Start Date</p>
+                  {!item.isFromCR ? (
                     <input
                       type="date"
                       value={feature?.start_date ?? ''}
                       onChange={e => patchFeature({ start_date: e.target.value || null })}
                       className="bg-transparent text-sm text-gray-200 outline-none cursor-pointer hover:text-white transition-colors w-full"
-                      placeholder="Not set"
                     />
-                  </div>
+                  ) : (
+                    <input
+                      type="date"
+                      value={cr?.roadmap_start ?? ''}
+                      onChange={e => patchCRRoadmap({ roadmap_start: e.target.value || null })}
+                      className="bg-transparent text-sm text-gray-200 outline-none cursor-pointer hover:text-white transition-colors w-full"
+                      placeholder={formatDay(item.startDate)}
+                    />
+                  )}
                 </div>
-              )}
+              </div>
+
+              {/* End date — editable for features (completed_at) and CRs (roadmap_end) */}
               <div className="flex items-center gap-3 px-4 py-3">
                 <svg className="w-4 h-4 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <div>
+                <div className="flex-1">
                   <p className="text-[10px] text-gray-500 mb-0.5">
-                    {(feature?.status === 'completed' || cr?.status === 'done') ? 'Completed' : 'Expected End'}
+                    {(feature?.status === 'completed' || cr?.status === 'done') ? 'Completed On' : 'Expected End'}
                   </p>
-                  <p className="text-sm text-gray-200">{formatDay(item.endDate)}</p>
+                  {!item.isFromCR ? (
+                    feature?.status === 'completed' ? (
+                      <input
+                        type="date"
+                        value={feature?.completed_at ?? toISODate(item.endDate)}
+                        onChange={e => patchFeature({ completed_at: e.target.value || null })}
+                        className="bg-transparent text-sm text-gray-200 outline-none cursor-pointer hover:text-white transition-colors w-full"
+                      />
+                    ) : (
+                      <p className="text-sm text-gray-200">{formatDay(item.endDate)}</p>
+                    )
+                  ) : (
+                    <input
+                      type="date"
+                      value={cr?.roadmap_end ?? ''}
+                      onChange={e => patchCRRoadmap({ roadmap_end: e.target.value || null })}
+                      className="bg-transparent text-sm text-gray-200 outline-none cursor-pointer hover:text-white transition-colors w-full"
+                      placeholder={formatDay(item.endDate)}
+                    />
+                  )}
                 </div>
               </div>
+
+              {/* Effort */}
               <div className="flex items-center gap-3 px-4 py-3">
                 <svg className="w-4 h-4 text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -436,7 +579,7 @@ function SidePanel({
             </div>
           </div>
 
-          {/* Assignees — features only */}
+          {/* ── Assignees (features only) ── */}
           {!item.isFromCR && (
             <div>
               <p className="text-[11px] text-gray-500 font-semibold uppercase tracking-wider mb-2.5">Team</p>
@@ -460,8 +603,6 @@ function SidePanel({
                     </button>
                   </div>
                 ))}
-
-                {/* Add member */}
                 {unassignedMembers.length > 0 && (
                   <div className="relative" ref={assigneesRef}>
                     <button
@@ -500,15 +641,12 @@ function SidePanel({
                     )}
                   </div>
                 )}
-
-                {members.length === 0 && (
-                  <p className="text-xs text-gray-600">No project members yet.</p>
-                )}
+                {members.length === 0 && <p className="text-xs text-gray-600">No project members yet.</p>}
               </div>
             </div>
           )}
 
-          {/* CR link */}
+          {/* ── CR link ── */}
           {item.isFromCR && item.crId && (
             <div className="border-t border-bg-border pt-1">
               <Link
@@ -529,7 +667,7 @@ function SidePanel({
                     cr.ai_analysis.risk_level === 'Medium' ? 'text-amber-400' : 'text-emerald-400'
                   }`}>{cr.ai_analysis.risk_level}</span>
                   <span className="text-gray-600">({(cr.ai_analysis.risk_score * 100).toFixed(0)}%)</span>
-                  <span className="ml-auto text-gray-500">{cr.ai_analysis.timeline_impact}</span>
+                  <span className="ml-auto">{cr.ai_analysis.timeline_impact}</span>
                 </div>
               )}
             </div>

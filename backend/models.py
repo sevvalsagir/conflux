@@ -118,8 +118,9 @@ class Feature(Base):
     description = Column(Text, default="")
     effort_days = Column(Float, default=0)
     status = Column(Enum(FeatureStatus), default=FeatureStatus.planned)
-    start_date = Column(String, nullable=True)          # ISO date string e.g. "2026-06-01"
-    assignee_ids = Column(JSON, default=list)           # list of user IDs e.g. [1, 3]
+    start_date = Column(String, nullable=True)      # ISO date string e.g. "2026-06-01"
+    completed_at = Column(String, nullable=True)    # ISO date string when marked done
+    assignee_ids = Column(JSON, default=list)       # list of user IDs e.g. [1, 3]
     created_at = Column(DateTime, server_default=func.now())
 
     baseline = relationship("Baseline", back_populates="features")
@@ -153,6 +154,10 @@ class ChangeRequest(Base):
 
     # AI analysis result stored as JSON
     ai_analysis = Column(JSON, nullable=True)
+
+    # Roadmap positioning dates (set via roadmap panel)
+    roadmap_start = Column(String, nullable=True)   # ISO date — overrides calculated start
+    roadmap_end   = Column(String, nullable=True)   # ISO date — overrides calculated end
 
     # Manager decision
     decision_note = Column(Text, nullable=True)

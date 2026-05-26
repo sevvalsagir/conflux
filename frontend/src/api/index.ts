@@ -48,7 +48,7 @@ export const baselineApi = {
   addFeature: (projectId: number, name: string, description: string, effort_days: number) =>
     client.post<Feature>(`/projects/${projectId}/baseline/features`, { name, description, effort_days }),
 
-  updateFeature: (projectId: number, featureId: number, data: Partial<{ name: string; description: string; effort_days: number; status: FeatureStatus; start_date: string | null; assignee_ids: number[] }>) =>
+  updateFeature: (projectId: number, featureId: number, data: Partial<{ name: string; description: string; effort_days: number; status: FeatureStatus; start_date: string | null; completed_at: string | null; assignee_ids: number[] }>) =>
     client.patch<Feature>(`/projects/${projectId}/baseline/features/${featureId}`, data),
 
   deleteFeature: (projectId: number, featureId: number) =>
@@ -78,6 +78,9 @@ export const crApi = {
 
   updateStatus: (projectId: number, crId: number, status: CRStatus, decision_note?: string) =>
     client.patch<ChangeRequest>(`/projects/${projectId}/change-requests/${crId}/status`, { status, decision_note }),
+
+  updateRoadmap: (projectId: number, crId: number, data: Partial<{ roadmap_start: string | null; roadmap_end: string | null }>) =>
+    client.patch<ChangeRequest>(`/projects/${projectId}/change-requests/${crId}/roadmap`, data),
 
   addComment: (projectId: number, crId: number, text: string) =>
     client.post<CRComment>(`/projects/${projectId}/change-requests/${crId}/comments`, { text }),

@@ -15,6 +15,7 @@ def _run_migrations():
     try:
         insp = sa_inspect(engine)
         feature_cols = [c['name'] for c in insp.get_columns('features')]
+        cr_cols = [c['name'] for c in insp.get_columns('change_requests')]
         with engine.begin() as conn:
             if 'start_date' not in feature_cols:
                 conn.execute(text("ALTER TABLE features ADD COLUMN start_date VARCHAR"))
@@ -22,6 +23,15 @@ def _run_migrations():
             if 'assignee_ids' not in feature_cols:
                 conn.execute(text("ALTER TABLE features ADD COLUMN assignee_ids JSON"))
                 print("[migration] Added column: features.assignee_ids")
+            if 'completed_at' not in feature_cols:
+                conn.execute(text("ALTER TABLE features ADD COLUMN completed_at VARCHAR"))
+                print("[migration] Added column: features.completed_at")
+            if 'roadmap_start' not in cr_cols:
+                conn.execute(text("ALTER TABLE change_requests ADD COLUMN roadmap_start VARCHAR"))
+                print("[migration] Added column: change_requests.roadmap_start")
+            if 'roadmap_end' not in cr_cols:
+                conn.execute(text("ALTER TABLE change_requests ADD COLUMN roadmap_end VARCHAR"))
+                print("[migration] Added column: change_requests.roadmap_end")
     except Exception as e:
         print(f"[migration] Warning: {e}")
 
