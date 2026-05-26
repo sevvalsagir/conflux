@@ -450,7 +450,7 @@ export function RoadmapPage() {
                     ? 'bg-bg-elevated/70'
                     : idx % 2 === 0 ? 'bg-transparent' : 'bg-bg-elevated/25 dark:bg-black/10'
                 }`}
-                style={{ height: ROW_H, borderBottom: '1px solid var(--border)', borderBottomOpacity: 0.4 }}
+                style={{ height: ROW_H, borderBottom: '1px solid var(--border)', }}
                 onMouseEnter={() => setHoveredId(item.id)}
                 onMouseLeave={() => setHoveredId(null)}
               >
@@ -561,7 +561,7 @@ export function RoadmapPage() {
                   className={`relative flex items-center transition-colors ${
                     isHovered ? 'bg-bg-elevated/30 dark:bg-white/[0.03]' : idx % 2 !== 0 ? 'bg-bg-elevated/15 dark:bg-black/[0.08]' : ''
                   }`}
-                  style={{ height: ROW_H, borderBottom: '1px solid var(--border)', borderBottomOpacity: 0.3 }}
+                  style={{ height: ROW_H, borderBottom: '1px solid var(--border)', }}
                   onMouseEnter={() => setHoveredId(item.id)}
                   onMouseLeave={() => setHoveredId(null)}
                 >
