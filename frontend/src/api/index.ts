@@ -1,7 +1,8 @@
 import client from './client'
 import type {
   User, Project, Baseline, Feature, Milestone,
-  ChangeRequest, CRComment, DriftData, UserRole, CRStatus, CRType, FeatureStatus
+  ChangeRequest, CRComment, DriftData, UserRole, CRStatus, CRType, FeatureStatus,
+  Message, Meeting, Notification, ActivityLog,
 } from '../types'
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -91,4 +92,64 @@ export const crApi = {
 export const driftApi = {
   get: (projectId: number) =>
     client.get<DriftData>(`/projects/${projectId}/drift`),
+}
+
+// ─── Messages ─────────────────────────────────────────────────────────────────
+
+export const messagesApi = {
+  list: (projectId: number, recipientId?: number) =>
+    client.get<Message[]>(`/projects/${projectId}/messages`, {
+      params: recipientId !== undefined ? { recipient_id: recipientId } : {},
+    }),
+
+  send: (projectId: number, text: string, recipientId?: number) =>
+    client.post<Message>(`/projects/${projectId}/messages`, {
+      text,
+      recipient_id: recipientId ?? null,
+    }),
+}
+
+// ─── Meetings ─────────────────────────────────────────────────────────────────
+
+export const meetingsApi = {
+  list: (projectId: number) =>
+    client.get<Meeting[]>(`/projects/${projectId}/meetings`),
+
+  create: (projectId: number, data: {
+    title: string; description?: string; meeting_date: string;
+    duration_minutes?: number; location?: string
+  }) =>
+    client.post<Meeting>(`/projects/${projectId}/meetings`, data),
+
+  update: (projectId: number, meetingId: number, data: Partial<{
+    title: string; description: string; meeting_date: string;
+    duration_minutes: number; location: string
+  }>) =>
+    client.patch<Meeting>(`/projects/${projectId}/meetings/${meetingId}`, data),
+
+  delete: (projectId: number, meetingId: number) =>
+    client.delete(`/projects/${projectId}/meetings/${meetingId}`),
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export const notificationsApi = {
+  list: () =>
+    client.get<Notification[]>('/notifications'),
+
+  count: () =>
+    client.get<{ unread_count: number }>('/notifications/count'),
+
+  markRead: (id: number) =>
+    client.patch<Notification>(`/notifications/${id}/read`),
+
+  markAllRead: () =>
+    client.post('/notifications/read-all'),
+}
+
+// ─── Activity Log ─────────────────────────────────────────────────────────────
+
+export const activityApi = {
+  list: (projectId: number) =>
+    client.get<ActivityLog[]>(`/projects/${projectId}/activity`),
 }

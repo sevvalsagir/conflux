@@ -7,6 +7,7 @@ import models, schemas
 from auth import get_current_user, get_member_role, require_manager, require_member_or_manager
 from services.ai_service import analyze_change_request
 from services.drift_service import calculate_drift
+from services.log_service import log_activity, notify_project_members, notify_user
 
 router = APIRouter(prefix="/api/projects/{project_id}/change-requests", tags=["Change Requests"])
 
@@ -72,6 +73,12 @@ def create_cr(
         status=models.CRStatus.draft,
     )
     db.add(cr)
+    db.flush()
+
+    log_activity(db, project_id, "cr_created",
+                 f"{current_user.name} created change request: '{body.title}'",
+                 user_id=current_user.id, meta={"cr_id": cr.id, "cr_type": body.cr_type})
+
     db.commit()
     db.refresh(cr)
     return cr
@@ -123,6 +130,30 @@ async def update_cr_status(
         cr.decided_at = datetime.utcnow()
 
     cr.status = body.status
+
+    # Log + notify on meaningful transitions
+    status_label = body.status.value.replace("_", " ").title()
+    log_activity(db, project_id, "cr_status_changed",
+                 f"{current_user.name} changed CR '{cr.title}' status to {status_label}",
+                 user_id=current_user.id,
+                 meta={"cr_id": cr_id, "new_status": body.status.value})
+
+    # Notify CR submitter if someone else acted
+    if cr.submitted_by_id != current_user.id:
+        notify_user(db, cr.submitted_by_id, "cr_status",
+                    f"Your CR '{cr.title}' is now {status_label}",
+                    body=body.decision_note,
+                    project_id=project_id,
+                    reference_id=cr_id, reference_type="cr")
+
+    # Notify all members on approve/reject/defer
+    if body.status in (models.CRStatus.approved, models.CRStatus.rejected, models.CRStatus.deferred):
+        notify_project_members(db, project_id, "cr_status",
+                               f"CR '{cr.title}' was {status_label}",
+                               body=body.decision_note,
+                               exclude_user_id=current_user.id,
+                               reference_id=cr_id, reference_type="cr")
+
     db.commit()
 
     # When a CR is submitted → trigger AI analysis in the background
@@ -167,7 +198,7 @@ def add_comment(
     if role is None:
         raise HTTPException(status_code=403, detail="Not a project member.")
 
-    _get_cr_or_404(cr_id, project_id, db)
+    cr = _get_cr_or_404(cr_id, project_id, db)
 
     comment = models.CRComment(
         cr_id=cr_id,
@@ -175,6 +206,20 @@ def add_comment(
         text=body.text,
     )
     db.add(comment)
+    db.flush()
+
+    log_activity(db, project_id, "cr_comment",
+                 f"{current_user.name} commented on CR '{cr.title}'",
+                 user_id=current_user.id, meta={"cr_id": cr_id})
+
+    # Notify CR submitter
+    if cr.submitted_by_id != current_user.id:
+        notify_user(db, cr.submitted_by_id, "cr_comment",
+                    f"{current_user.name} commented on '{cr.title}'",
+                    body=body.text[:120],
+                    project_id=project_id,
+                    reference_id=cr_id, reference_type="cr")
+
     db.commit()
     db.refresh(comment)
     return comment

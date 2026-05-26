@@ -6,6 +6,7 @@ from typing import List
 from database import get_db
 import models, schemas
 from auth import get_current_user, get_member_role, require_manager, require_member_or_manager
+from services.log_service import log_activity
 
 router = APIRouter(prefix="/api/projects/{project_id}/baseline", tags=["Baseline"])
 
@@ -69,6 +70,10 @@ def lock_baseline(
     baseline.locked_at = datetime.utcnow()
     baseline.snapshot = {"features": features_snap, "milestones": milestones_snap}
 
+    log_activity(db, project_id, "baseline_locked",
+                 f"{current_user.name} locked the baseline ({len(features_snap)} features, {len(milestones_snap)} milestones)",
+                 user_id=current_user.id)
+
     db.commit()
     return {"message": "Baseline locked successfully."}
 
@@ -93,6 +98,12 @@ def add_feature(
         effort_days=body.effort_days,
     )
     db.add(feature)
+    db.flush()
+
+    log_activity(db, project_id, "feature_added",
+                 f"{current_user.name} added feature: '{body.name}'",
+                 user_id=current_user.id, meta={"feature_id": feature.id})
+
     db.commit()
     db.refresh(feature)
     return feature
@@ -130,6 +141,17 @@ def update_feature(
     for field, value in updates.items():
         setattr(feature, field, value)
 
+    # Log meaningful updates
+    changed = list(updates.keys())
+    if "status" in changed:
+        log_activity(db, project_id, "feature_status_changed",
+                     f"{current_user.name} changed '{feature.name}' status to {updates['status']}",
+                     user_id=current_user.id, meta={"feature_id": feature_id})
+    elif changed:
+        log_activity(db, project_id, "feature_updated",
+                     f"{current_user.name} updated feature: '{feature.name}' ({', '.join(changed)})",
+                     user_id=current_user.id, meta={"feature_id": feature_id})
+
     db.commit()
     db.refresh(feature)
     return feature
@@ -153,6 +175,9 @@ def delete_feature(
     if not feature:
         raise HTTPException(status_code=404, detail="Feature not found.")
 
+    log_activity(db, project_id, "feature_deleted",
+                 f"{current_user.name} deleted feature: '{feature.name}'",
+                 user_id=current_user.id)
     db.delete(feature)
     db.commit()
     return {"message": "Feature deleted."}

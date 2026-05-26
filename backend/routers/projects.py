@@ -5,6 +5,7 @@ from typing import List
 from database import get_db
 import models, schemas
 from auth import get_current_user, get_member_role, require_manager
+from services.log_service import log_activity, notify_user
 
 router = APIRouter(prefix="/api/projects", tags=["Projects"])
 
@@ -100,6 +101,18 @@ def add_member(
         role=body.role,
     )
     db.add(membership)
+    db.flush()
+
+    project = _get_project_or_404(project_id, db)
+    log_activity(db, project_id, "member_added",
+                 f"{current_user.name} added {user.name} as {body.role.value}",
+                 user_id=current_user.id, meta={"new_user_id": user.id})
+
+    notify_user(db, user.id, "member",
+                f"You were added to project '{project.name}'",
+                body=f"Role: {body.role.value}",
+                project_id=project_id)
+
     db.commit()
     db.refresh(membership)
     return membership
@@ -123,6 +136,10 @@ def remove_member(
     if user_id == current_user.id:
         raise HTTPException(status_code=400, detail="You cannot remove yourself.")
 
+    removed_user = db.query(models.User).filter(models.User.id == user_id).first()
+    log_activity(db, project_id, "member_removed",
+                 f"{current_user.name} removed {removed_user.name if removed_user else user_id} from project",
+                 user_id=current_user.id, meta={"removed_user_id": user_id})
     db.delete(membership)
     db.commit()
     return {"message": "Member removed."}

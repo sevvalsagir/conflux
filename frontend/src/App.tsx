@@ -10,6 +10,9 @@ import { ChangeRequestsPage } from './pages/ChangeRequestsPage'
 import { CRDetailPage } from './pages/CRDetailPage'
 import { MembersPage } from './pages/MembersPage'
 import { RoadmapPage } from './pages/RoadmapPage'
+import { ChatPage } from './pages/ChatPage'
+import { MeetingsPage } from './pages/MeetingsPage'
+import { NotificationsPage } from './pages/NotificationsPage'
 import { PageSpinner } from './components/ui/Spinner'
 
 // Wraps protected routes — redirects to /login if not authenticated
@@ -55,12 +58,15 @@ export default function App() {
         {/* Protected routes */}
         <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
 
-        <Route path="/projects/:projectId/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-        <Route path="/projects/:projectId/baseline" element={<ProtectedRoute><BaselinePage /></ProtectedRoute>} />
+        <Route path="/projects/:projectId/dashboard"       element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        <Route path="/projects/:projectId/baseline"        element={<ProtectedRoute><BaselinePage /></ProtectedRoute>} />
         <Route path="/projects/:projectId/change-requests" element={<ProtectedRoute><ChangeRequestsPage /></ProtectedRoute>} />
         <Route path="/projects/:projectId/change-requests/:crId" element={<ProtectedRoute><CRDetailPage /></ProtectedRoute>} />
-        <Route path="/projects/:projectId/roadmap" element={<ProtectedRoute><RoadmapPage /></ProtectedRoute>} />
-        <Route path="/projects/:projectId/members" element={<ProtectedRoute><MembersPage /></ProtectedRoute>} />
+        <Route path="/projects/:projectId/roadmap"         element={<ProtectedRoute><RoadmapPage /></ProtectedRoute>} />
+        <Route path="/projects/:projectId/members"         element={<ProtectedRoute><MembersPage /></ProtectedRoute>} />
+        <Route path="/projects/:projectId/chat"            element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+        <Route path="/projects/:projectId/meetings"        element={<ProtectedRoute><MeetingsPage /></ProtectedRoute>} />
+        <Route path="/projects/:projectId/notifications"   element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
 
         {/* Default redirect */}
         <Route path="/" element={<Navigate to={token ? '/projects' : '/login'} replace />} />

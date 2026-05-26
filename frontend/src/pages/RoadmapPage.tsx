@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useProjectStore, useBaselineStore, useCRStore } from '../store'
+import { useProjectStore, useBaselineStore, useCRStore, useActivityStore } from '../store'
 import { baselineApi, crApi } from '../api'
 import { AppLayout } from '../components/layout/AppLayout'
 import { PageSpinner } from '../components/ui/Spinner'
-import type { Feature, FeatureStatus, ChangeRequest, ProjectMember, CRStatus } from '../types'
+import type { Feature, FeatureStatus, ChangeRequest, ProjectMember, CRStatus, ActivityLog } from '../types'
 
 function toISODate(d: Date) {
   return d.toISOString().split('T')[0]
@@ -694,6 +694,8 @@ export function RoadmapPage() {
   const [zoom, setZoom] = useState<'month' | 'week'>('month')
   const [hoveredId, setHoveredId] = useState<number | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [showLog, setShowLog] = useState(false)
+  const { logs, fetchActivity } = useActivityStore()
 
   const hoverTimer = useRef<ReturnType<typeof setTimeout>>()
   const headerScrollRef = useRef<HTMLDivElement>(null)
@@ -837,7 +839,7 @@ export function RoadmapPage() {
         </div>
 
         {/* Zoom */}
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
           <PillGroup
             value={zoom}
             onChange={setZoom}
@@ -846,6 +848,20 @@ export function RoadmapPage() {
               { label: 'Week', value: 'week' },
             ]}
           />
+          <button
+            onClick={() => { setShowLog(v => !v); if (!showLog) fetchActivity(id) }}
+            title="Activity Log"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all
+              ${showLog
+                ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400'
+                : 'bg-bg-elevated/60 border-bg-border text-gray-500 hover:text-gray-300 hover:border-gray-500'
+              }`}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+            Log
+          </button>
         </div>
 
         {/* Legend */}
@@ -1208,6 +1224,76 @@ export function RoadmapPage() {
           onRefreshFeatures={() => fetchBaseline(id)}
           onRefreshCRs={() => fetchCRs(id)}
         />
+      )}
+
+      {/* ── Activity Log Panel ───────────────────────────────────────────────── */}
+      {showLog && (
+        <div className="fixed inset-y-0 right-0 z-40 flex">
+          <div className="w-[360px] bg-bg-card border-l border-bg-border flex flex-col shadow-2xl animate-slide-in-right">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-bg-border">
+              <div>
+                <h2 className="font-bold text-white text-base">Activity Log</h2>
+                <p className="text-xs text-gray-500 mt-0.5">{logs.length} events</p>
+              </div>
+              <button onClick={() => setShowLog(false)} className="text-gray-500 hover:text-white transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Log entries */}
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              {logs.length === 0 ? (
+                <div className="text-center py-16 text-gray-600">
+                  <svg className="w-10 h-10 mx-auto mb-2 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                  <p className="text-sm">No activity yet</p>
+                </div>
+              ) : (
+                <div className="relative">
+                  {/* timeline line */}
+                  <div className="absolute left-[18px] top-0 bottom-0 w-px bg-bg-border" />
+                  <div className="space-y-0">
+                    {logs.map((log, i) => {
+                      const ACTION_ICONS: Record<string, string> = {
+                        feature_added: '✨', feature_updated: '✏️', feature_deleted: '🗑️',
+                        feature_status_changed: '🔄', cr_created: '📋', cr_status_changed: '🔀',
+                        cr_comment: '💬', member_added: '👤', member_removed: '👋',
+                        baseline_locked: '🔒', meeting_scheduled: '📅', meeting_updated: '📅',
+                        meeting_deleted: '❌',
+                      }
+                      const icon = ACTION_ICONS[log.action_type] ?? '•'
+                      const relTime = (() => {
+                        const diff = Date.now() - new Date(log.created_at).getTime()
+                        const mins = Math.floor(diff / 60000)
+                        if (mins < 1) return 'just now'
+                        if (mins < 60) return `${mins}m ago`
+                        const hrs = Math.floor(mins / 60)
+                        if (hrs < 24) return `${hrs}h ago`
+                        return `${Math.floor(hrs / 24)}d ago`
+                      })()
+                      return (
+                        <div key={log.id} className="flex gap-3 pl-1 pb-4 relative">
+                          {/* dot */}
+                          <div className="w-9 h-9 rounded-xl bg-bg-elevated border border-bg-border flex items-center justify-center text-sm shrink-0 z-10">
+                            {icon}
+                          </div>
+                          <div className="flex-1 pt-1 min-w-0">
+                            <p className="text-xs text-gray-200 leading-snug">{log.description}</p>
+                            <p className="text-[10px] text-gray-600 mt-0.5">{relTime}</p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </AppLayout>
   )

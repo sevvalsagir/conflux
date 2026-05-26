@@ -193,3 +193,91 @@ class DriftOut(BaseModel):
     approved_crs: int
     pending_crs: int
     rejected_crs: int
+
+
+# ─── Chat Messages ────────────────────────────────────────────────────────────
+
+class MessageCreate(BaseModel):
+    text: str
+    recipient_id: Optional[int] = None   # None = general chat
+
+class MessageOut(BaseModel):
+    id: int
+    project_id: int
+    sender_id: int
+    recipient_id: Optional[int] = None
+    text: str
+    created_at: datetime
+    sender: UserOut
+
+    class Config:
+        from_attributes = True
+
+
+# ─── Meetings ─────────────────────────────────────────────────────────────────
+
+class MeetingCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    meeting_date: str          # ISO datetime string "2026-06-15T14:00"
+    duration_minutes: int = 60
+    location: Optional[str] = None
+
+class MeetingUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    meeting_date: Optional[str] = None
+    duration_minutes: Optional[int] = None
+    location: Optional[str] = None
+
+class MeetingOut(BaseModel):
+    id: int
+    project_id: int
+    created_by_id: int
+    title: str
+    description: Optional[str] = None
+    meeting_date: str
+    duration_minutes: int
+    location: Optional[str] = None
+    created_at: datetime
+    created_by: UserOut
+
+    class Config:
+        from_attributes = True
+
+
+# ─── Notifications ────────────────────────────────────────────────────────────
+
+class NotificationOut(BaseModel):
+    id: int
+    user_id: int
+    project_id: Optional[int] = None
+    notif_type: str
+    title: str
+    body: Optional[str] = None
+    is_read: bool
+    reference_id: Optional[int] = None
+    reference_type: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class NotificationCountOut(BaseModel):
+    unread_count: int
+
+
+# ─── Activity Log ─────────────────────────────────────────────────────────────
+
+class ActivityLogOut(BaseModel):
+    id: int
+    project_id: int
+    user_id: Optional[int] = None
+    action_type: str
+    description: str
+    meta: Optional[Any] = None
+    created_at: datetime
+    user: Optional[UserOut] = None
+
+    class Config:
+        from_attributes = True

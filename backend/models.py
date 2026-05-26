@@ -185,3 +185,76 @@ class CRComment(Base):
 
     cr = relationship("ChangeRequest", back_populates="comments")
     user = relationship("User")
+
+
+# ─── Chat Messages ────────────────────────────────────────────────────────────
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    recipient_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # None = general
+    text = Column(Text, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+    project = relationship("Project")
+    sender = relationship("User", foreign_keys=[sender_id])
+    recipient = relationship("User", foreign_keys=[recipient_id])
+
+
+# ─── Meetings ─────────────────────────────────────────────────────────────────
+
+class Meeting(Base):
+    __tablename__ = "meetings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    meeting_date = Column(String, nullable=False)   # ISO datetime "2026-06-15T14:00"
+    duration_minutes = Column(Integer, default=60)
+    location = Column(String, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    project = relationship("Project")
+    created_by = relationship("User", foreign_keys=[created_by_id])
+
+
+# ─── Notifications ────────────────────────────────────────────────────────────
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
+    notif_type = Column(String, nullable=False)   # new_message / cr_status / meeting / member / feature
+    title = Column(String, nullable=False)
+    body = Column(Text, nullable=True)
+    is_read = Column(Boolean, default=False)
+    reference_id = Column(Integer, nullable=True)
+    reference_type = Column(String, nullable=True)  # "cr" / "meeting" / "message"
+    created_at = Column(DateTime, server_default=func.now())
+
+    user = relationship("User", foreign_keys=[user_id])
+    project = relationship("Project")
+
+
+# ─── Activity Log ─────────────────────────────────────────────────────────────
+
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    action_type = Column(String, nullable=False)
+    description = Column(Text, nullable=False)
+    meta = Column(JSON, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    project = relationship("Project")
+    user = relationship("User", foreign_keys=[user_id])

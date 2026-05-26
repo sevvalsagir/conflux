@@ -119,6 +119,63 @@ export interface ChangeRequest {
   comments: CRComment[]
 }
 
+// ─── Chat ─────────────────────────────────────────────────────────────────────
+
+export interface Message {
+  id: number
+  project_id: number
+  sender_id: number
+  recipient_id: number | null
+  text: string
+  created_at: string
+  sender: User
+}
+
+// ─── Meetings ─────────────────────────────────────────────────────────────────
+
+export interface Meeting {
+  id: number
+  project_id: number
+  created_by_id: number
+  title: string
+  description: string | null
+  meeting_date: string   // ISO datetime "2026-06-15T14:00"
+  duration_minutes: number
+  location: string | null
+  created_at: string
+  created_by: User
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export type NotifType = 'new_message' | 'cr_status' | 'cr_comment' | 'meeting' | 'member' | 'feature'
+
+export interface Notification {
+  id: number
+  user_id: number
+  project_id: number | null
+  notif_type: NotifType
+  title: string
+  body: string | null
+  is_read: boolean
+  reference_id: number | null
+  reference_type: string | null
+  created_at: string
+}
+
+// ─── Activity Log ─────────────────────────────────────────────────────────────
+
+export interface ActivityLog {
+  id: number
+  project_id: number
+  user_id: number | null
+  action_type: string
+  description: string
+  meta: Record<string, unknown> | null
+  created_at: string
+  user: User | null
+}
+
 // ─── Drift ────────────────────────────────────────────────────────────────────
 
 export type DriftLevel = 'Low' | 'Moderate' | 'High' | 'Critical'

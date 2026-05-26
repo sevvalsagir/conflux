@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { User, Project, Baseline, ChangeRequest, DriftData } from '../types'
-import { authApi, projectsApi, baselineApi, crApi, driftApi } from '../api'
+import type { User, Project, Baseline, ChangeRequest, DriftData, Notification, Message, Meeting, ActivityLog } from '../types'
+import { authApi, projectsApi, baselineApi, crApi, driftApi, notificationsApi, messagesApi, meetingsApi, activityApi } from '../api'
 
 // ─── Auth Store ───────────────────────────────────────────────────────────────
 
@@ -154,6 +154,124 @@ export const useDriftStore = create<DriftState>((set) => ({
   fetchDrift: async (projectId) => {
     const res = await driftApi.get(projectId)
     set({ drift: res.data })
+  },
+}))
+
+// ─── Notification Store ───────────────────────────────────────────────────────
+
+interface NotificationState {
+  notifications: Notification[]
+  unreadCount: number
+  fetchNotifications: () => Promise<void>
+  fetchUnreadCount: () => Promise<void>
+  markRead: (id: number) => Promise<void>
+  markAllRead: () => Promise<void>
+}
+
+export const useNotificationStore = create<NotificationState>((set, get) => ({
+  notifications: [],
+  unreadCount: 0,
+
+  fetchNotifications: async () => {
+    const res = await notificationsApi.list()
+    set({
+      notifications: res.data,
+      unreadCount: res.data.filter(n => !n.is_read).length,
+    })
+  },
+
+  fetchUnreadCount: async () => {
+    const res = await notificationsApi.count()
+    set({ unreadCount: res.data.unread_count })
+  },
+
+  markRead: async (id) => {
+    await notificationsApi.markRead(id)
+    set(state => ({
+      notifications: state.notifications.map(n => n.id === id ? { ...n, is_read: true } : n),
+      unreadCount: Math.max(0, state.unreadCount - 1),
+    }))
+  },
+
+  markAllRead: async () => {
+    await notificationsApi.markAllRead()
+    set(state => ({
+      notifications: state.notifications.map(n => ({ ...n, is_read: true })),
+      unreadCount: 0,
+    }))
+  },
+}))
+
+// ─── Chat Store ───────────────────────────────────────────────────────────────
+
+interface ChatState {
+  messages: Message[]
+  fetchMessages: (projectId: number, recipientId?: number) => Promise<void>
+  sendMessage: (projectId: number, text: string, recipientId?: number) => Promise<void>
+}
+
+export const useChatStore = create<ChatState>((set) => ({
+  messages: [],
+
+  fetchMessages: async (projectId, recipientId) => {
+    const res = await messagesApi.list(projectId, recipientId)
+    set({ messages: res.data })
+  },
+
+  sendMessage: async (projectId, text, recipientId) => {
+    const res = await messagesApi.send(projectId, text, recipientId)
+    set(state => ({ messages: [...state.messages, res.data] }))
+  },
+}))
+
+// ─── Meetings Store ───────────────────────────────────────────────────────────
+
+interface MeetingState {
+  meetings: Meeting[]
+  fetchMeetings: (projectId: number) => Promise<void>
+  createMeeting: (projectId: number, data: Parameters<typeof meetingsApi.create>[1]) => Promise<void>
+  updateMeeting: (projectId: number, id: number, data: Parameters<typeof meetingsApi.update>[2]) => Promise<void>
+  deleteMeeting: (projectId: number, id: number) => Promise<void>
+}
+
+export const useMeetingStore = create<MeetingState>((set) => ({
+  meetings: [],
+
+  fetchMeetings: async (projectId) => {
+    const res = await meetingsApi.list(projectId)
+    set({ meetings: res.data })
+  },
+
+  createMeeting: async (projectId, data) => {
+    const res = await meetingsApi.create(projectId, data)
+    set(state => ({ meetings: [...state.meetings, res.data].sort((a, b) =>
+      a.meeting_date.localeCompare(b.meeting_date)) }))
+  },
+
+  updateMeeting: async (projectId, id, data) => {
+    const res = await meetingsApi.update(projectId, id, data)
+    set(state => ({ meetings: state.meetings.map(m => m.id === id ? res.data : m) }))
+  },
+
+  deleteMeeting: async (projectId, id) => {
+    await meetingsApi.delete(projectId, id)
+    set(state => ({ meetings: state.meetings.filter(m => m.id !== id) }))
+  },
+}))
+
+// ─── Activity Store ───────────────────────────────────────────────────────────
+
+interface ActivityState {
+  logs: ActivityLog[]
+  fetchActivity: (projectId: number) => Promise<void>
+}
+
+export const useActivityStore = create<ActivityState>((set) => ({
+  logs: [],
+
+  fetchActivity: async (projectId) => {
+    const res = await activityApi.list(projectId)
+    set({ logs: res.data })
   },
 }))
 

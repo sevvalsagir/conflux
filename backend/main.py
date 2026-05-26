@@ -3,9 +3,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from database import Base, engine
-from routers import auth, projects, baselines, change_requests, drift
+from routers import auth, projects, baselines, change_requests, drift, messages, meetings, notifications, activity
 
-# Create all tables on startup
+# Create all tables on startup (new tables created automatically)
 Base.metadata.create_all(bind=engine)
 
 
@@ -70,6 +70,10 @@ app.include_router(projects.router)
 app.include_router(baselines.router)
 app.include_router(change_requests.router)
 app.include_router(drift.router)
+app.include_router(messages.router)
+app.include_router(meetings.router)
+app.include_router(notifications.router)
+app.include_router(activity.router)
 
 
 @app.get("/")
