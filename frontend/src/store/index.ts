@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type { User, Project, Baseline, ChangeRequest, DriftData } from '../types'
 import { authApi, projectsApi, baselineApi, crApi, driftApi } from '../api'
 
@@ -155,3 +156,27 @@ export const useDriftStore = create<DriftState>((set) => ({
     set({ drift: res.data })
   },
 }))
+
+// ── Theme Store ────────────────────────────────────────────────────
+interface ThemeState {
+  theme: 'dark' | 'light'
+  toggleTheme: () => void
+}
+
+export const useThemeStore = create<ThemeState>()(
+  persist(
+    (set, get) => ({
+      theme: 'dark',
+      toggleTheme: () => {
+        const next = get().theme === 'dark' ? 'light' : 'dark'
+        set({ theme: next })
+        if (next === 'dark') {
+          document.documentElement.classList.add('dark')
+        } else {
+          document.documentElement.classList.remove('dark')
+        }
+      },
+    }),
+    { name: 'conflux-theme' }
+  )
+)

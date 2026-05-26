@@ -44,7 +44,7 @@ export function ProjectsPage() {
       <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold">Projects</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Projects</h2>
             <p className="text-sm text-gray-400 mt-1">{projects.length} project{projects.length !== 1 ? 's' : ''}</p>
           </div>
           <Button onClick={() => setShowModal(true)}>

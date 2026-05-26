@@ -81,7 +81,7 @@ export function ChangeRequestsPage() {
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 filter === f.value
                   ? 'bg-accent-green/20 text-accent-green border border-accent-green/30'
-                  : 'bg-bg-elevated text-gray-400 border border-bg-border hover:text-white'
+                  : 'bg-bg-elevated text-gray-400 border border-bg-border hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               {f.label}

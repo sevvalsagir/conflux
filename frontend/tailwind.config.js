@@ -1,15 +1,15 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        // Dark theme palette
         bg: {
-          base: '#111111',
-          card: '#1e1e1e',
-          elevated: '#252525',
-          border: '#2e2e2e',
+          base:     'var(--bg-base)',
+          card:     'var(--bg-surface)',
+          elevated: 'var(--bg-elevated)',
+          border:   'var(--border)',
         },
         accent: {
           green: '#7EE787',

@@ -70,10 +70,12 @@ export function CRDetailPage() {
       setShowDecisionInput(false)
       setDecisionNote('')
       setPendingStatus(null)
-      // Poll briefly if analyzing
+      // Poll until AI analysis completes
       if (status === 'submitted') {
         setTimeout(() => fetchCR(pId, cId), 3000)
-        setTimeout(() => fetchCR(pId, cId), 7000)
+        setTimeout(() => fetchCR(pId, cId), 8000)
+        setTimeout(() => fetchCR(pId, cId), 15000)
+        setTimeout(() => fetchCR(pId, cId), 25000)
       }
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Transition failed.')
@@ -127,7 +129,7 @@ export function CRDetailPage() {
             <CRStatusBadge status={cr.status} />
           </div>
 
-          <p className="mt-4 text-gray-300 whitespace-pre-wrap">{cr.description}</p>
+          <p className="mt-4 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{cr.description}</p>
 
           {/* Status badge for analyzing */}
           {cr.status === 'analyzing' && (
@@ -228,7 +230,7 @@ export function CRDetailPage() {
               {cr.status} by {cr.decided_by?.name}
               {cr.decided_at ? ` · ${format(new Date(cr.decided_at), 'MMM d, yyyy')}` : ''}
             </p>
-            <p className="text-sm text-gray-200">{cr.decision_note}</p>
+            <p className="text-sm text-gray-800 dark:text-gray-200">{cr.decision_note}</p>
           </div>
         )}
 
@@ -250,7 +252,7 @@ export function CRDetailPage() {
                     <span className="text-sm font-medium">{c.user.name}</span>
                     <span className="text-xs text-gray-500">{format(new Date(c.created_at), 'MMM d, HH:mm')}</span>
                   </div>
-                  <p className="text-sm text-gray-300 whitespace-pre-wrap">{c.text}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{c.text}</p>
                 </div>
               </div>
             ))}
@@ -280,7 +282,7 @@ function InfoBlock({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-bg-elevated rounded-lg p-3">
       <p className="text-xs text-gray-400 uppercase tracking-wider font-medium mb-1">{label}</p>
-      <p className="text-sm text-white">{value}</p>
+      <p className="text-sm text-gray-900 dark:text-white">{value}</p>
     </div>
   )
 }

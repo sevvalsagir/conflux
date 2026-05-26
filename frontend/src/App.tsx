@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useAuthStore } from './store'
+import { useAuthStore, useThemeStore } from './store'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ProjectsPage } from './pages/ProjectsPage'
@@ -21,6 +21,16 @@ function ProtectedRoute({ children }: { children: JSX.Element }) {
 
 export default function App() {
   const { token, fetchMe, isLoading } = useAuthStore()
+  const { theme } = useThemeStore()
+
+  // Apply theme class to <html> on mount and whenever theme changes
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [theme])
 
   // On app load, if we have a token, fetch the user profile
   useEffect(() => {

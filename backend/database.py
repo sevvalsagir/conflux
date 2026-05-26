@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Railway persistent volume mounts at /data — use that path in production.
+# Locally defaults to ./conflux.db
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./conflux.db")
 
 # connect_args is needed only for SQLite

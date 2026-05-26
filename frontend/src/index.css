@@ -1,3 +1,33 @@
+/* ── Theme: Light (default) ─────────────────────────────────────────────── */
+:root {
+  --bg-base:        #f0f2f5;
+  --bg-surface:     #ffffff;
+  --bg-elevated:    #f7f9fc;
+  --border:         #dde3ec;
+  --text-primary:   #1a202c;
+  --text-secondary: #4a5568;
+  --text-muted:     #a0aec0;
+  --accent:         #4361ee;
+  --accent-light:   #ebf4ff;
+  --scrollbar-bg:   #e2e8f0;
+  --scrollbar-thumb:#a0aec0;
+}
+
+/* ── Theme: Dark ─────────────────────────────────────────────────────────── */
+.dark {
+  --bg-base:        #111111;
+  --bg-surface:     #1e1e1e;
+  --bg-elevated:    #252525;
+  --border:         #2e2e2e;
+  --text-primary:   #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted:     #64748b;
+  --accent:         #4361ee;
+  --accent-light:   #1e2a5e;
+  --scrollbar-bg:   #1a1a1a;
+  --scrollbar-thumb:#3a3a3a;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,25 +38,86 @@
   }
 
   body {
-    @apply bg-bg-base text-white font-sans antialiased;
+    @apply bg-bg-base font-sans antialiased;
+    color: var(--text-primary);
     margin: 0;
     padding: 0;
   }
 
   /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    @apply bg-bg-base;
-  }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-bg-border rounded-full;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-600;
-  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--scrollbar-bg); }
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+}
+
+/* ── Light mode global text overrides ───────────────────────────────────── */
+html:not(.dark) {
+  color-scheme: light;
+}
+
+/* White text → dark slate in light mode */
+html:not(.dark) .text-white,
+html:not(.dark) .text-gray-100,
+html:not(.dark) .text-gray-200 {
+  color: #1e293b;
+}
+
+html:not(.dark) .text-gray-300 {
+  color: #374151;
+}
+
+html:not(.dark) .text-gray-400 {
+  color: #6b7280;
+}
+
+html:not(.dark) .text-gray-500 {
+  color: #9ca3af;
+}
+
+html:not(.dark) .text-gray-600 {
+  color: #9ca3af;
+}
+
+/* ── Light mode input / form overrides ──────────────────────────────────── */
+html:not(.dark) input:not([type="checkbox"]):not([type="radio"]),
+html:not(.dark) textarea,
+html:not(.dark) select {
+  background-color: var(--bg-elevated) !important;
+  color: #1e293b !important;
+  border-color: var(--border) !important;
+}
+
+html:not(.dark) input::placeholder,
+html:not(.dark) textarea::placeholder {
+  color: #9ca3af !important;
+}
+
+/* ── Light mode card overrides ──────────────────────────────────────────── */
+html:not(.dark) .card {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* ── Light mode modal backdrop ──────────────────────────────────────────── */
+html:not(.dark) .modal-backdrop {
+  background: rgba(0,0,0,0.4);
+}
+
+/* ── Light mode recharts tooltip ─────────────────────────────────────────── */
+html:not(.dark) .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: var(--bg-surface) !important;
+  border-color: var(--border) !important;
+  color: #1e293b !important;
+}
+
+/* ── Keep accent colors working in both modes ───────────────────────────── */
+html:not(.dark) .text-accent-green { color: #22a363; }
+html:not(.dark) .border-accent-green\/30 { border-color: rgba(34,163,99,0.3); }
+html:not(.dark) .bg-accent-green\/10 { background-color: rgba(34,163,99,0.1); }
+html:not(.dark) .bg-accent-green\/20 { background-color: rgba(34,163,99,0.15); }
+
+/* ── Light mode sidebar improvements ─────────────────────────────────────── */
+html:not(.dark) .text-gray-500.hover\:text-gray-200:hover {
+  color: #374151;
 }
 
 @layer utilities {

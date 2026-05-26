@@ -56,7 +56,7 @@ export function Sidebar() {
   const { projectId } = useParams<{ projectId: string }>()
 
   return (
-    <aside className="w-16 flex flex-col items-center py-6 gap-2 bg-bg-card border-r border-bg-border shrink-0">
+    <aside className="w-16 flex flex-col items-center py-6 gap-2 bg-white dark:bg-bg-card border-r border-slate-200 dark:border-bg-border shrink-0">
       {/* Logo */}
       <div className="w-9 h-9 rounded-xl bg-accent-green flex items-center justify-center mb-4">
         <span className="text-black font-bold text-sm">CX</span>
@@ -73,7 +73,7 @@ export function Sidebar() {
                 'flex items-center justify-center p-2.5 rounded-xl transition-all duration-150',
                 isActive
                   ? 'bg-accent-green/20 text-accent-green'
-                  : 'text-gray-500 hover:text-gray-300 hover:bg-bg-elevated'
+                  : 'text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300 hover:bg-slate-100 dark:hover:bg-bg-elevated'
               )
             }
           >
@@ -87,7 +87,7 @@ export function Sidebar() {
         <NavLink
           to="/projects"
           title="All Projects"
-          className="flex items-center justify-center p-2.5 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-bg-elevated transition-all"
+          className="flex items-center justify-center p-2.5 rounded-xl text-slate-500 dark:text-gray-500 hover:text-slate-700 dark:hover:text-gray-300 hover:bg-slate-100 dark:hover:bg-bg-elevated transition-all"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />

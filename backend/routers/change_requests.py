@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import List
-
 from database import get_db
 import models, schemas
 from auth import get_current_user, get_member_role, require_manager, require_member_or_manager
@@ -163,28 +162,40 @@ def add_comment(
 
 # ─── Background AI Task ───────────────────────────────────────────────────────
 
-async def _run_ai_analysis(cr_id: int, project_id: int):
+def _run_ai_analysis(cr_id: int, project_id: int):
     """
-    Runs after a CR is submitted. Calls the AI service and updates the CR.
-    On failure, gracefully moves to under_review without analysis.
+    Sync background task — runs in FastAPI's anyio thread pool.
+    Uses asyncio.run() to call the async AI service safely from this worker thread
+    (no event loop conflict since thread pool threads don't have a running loop).
     """
-    # Need a fresh DB session for the background task
+    import asyncio
     from database import SessionLocal
-    db = SessionLocal()
-    try:
-        cr = db.query(models.ChangeRequest).filter(models.ChangeRequest.id == cr_id).first()
-        if not cr:
-            return
 
-        # Get baseline context — send actual features & milestones to AI
+    # ── Step 1: read CR + baseline data (own session, close before AI call) ──
+    cr_title = cr_description = ""
+    context: dict = {}
+    try:
+        db = SessionLocal()
+        cr = db.query(models.ChangeRequest).filter(
+            models.ChangeRequest.id == cr_id
+        ).first()
+        if not cr:
+            db.close()
+            return
+        cr_title       = cr.title
+        cr_description = cr.description
+
         baseline = db.query(models.Baseline).filter(
             models.Baseline.project_id == project_id
         ).first()
-        context = {}
         if baseline:
             context = {
                 "features": [
-                    {"name": f.name, "effort_days": f.effort_days, "status": f.status.value}
+                    {
+                        "name": f.name,
+                        "effort_days": f.effort_days,
+                        "status": f.status.value,
+                    }
                     for f in baseline.features
                 ],
                 "milestones": [
@@ -192,25 +203,38 @@ async def _run_ai_analysis(cr_id: int, project_id: int):
                     for m in baseline.milestones
                 ],
             }
-
-        # Call AI
-        analysis = await analyze_change_request(cr.title, cr.description, context)
-
-        cr.ai_analysis = analysis
-        cr.status = models.CRStatus.under_review
-        db.commit()
-    except Exception as e:
-        print(f"[AI Background] Error: {e}")
-        # Graceful degradation — still move to under_review
-        try:
-            cr = db.query(models.ChangeRequest).filter(models.ChangeRequest.id == cr_id).first()
-            if cr:
-                cr.status = models.CRStatus.under_review
-                db.commit()
-        except Exception:
-            pass
-    finally:
         db.close()
+    except Exception as e:
+        print(f"[AI] DB read error for CR {cr_id}: {e}")
+
+    # ── Step 2: call AI via the proven async service ──────────────────────────
+    analysis = None
+    try:
+        analysis = asyncio.run(
+            analyze_change_request(cr_title, cr_description, context)
+        )
+        if analysis:
+            print(f"[AI] CR {cr_id} analysis complete — risk: {analysis.get('risk_level')}")
+        else:
+            print(f"[AI] CR {cr_id} — AI returned None (timeout or key missing)")
+    except Exception as e:
+        print(f"[AI] CR {cr_id} analysis failed: {e}")
+
+    # ── Step 3: write result back with a fresh session ────────────────────────
+    try:
+        db = SessionLocal()
+        cr = db.query(models.ChangeRequest).filter(
+            models.ChangeRequest.id == cr_id
+        ).first()
+        if cr:
+            if analysis:
+                cr.ai_analysis = analysis
+            cr.status = models.CRStatus.under_review
+            db.commit()
+            print(f"[AI] CR {cr_id} → under_review (ai_analysis={'set' if analysis else 'null'})")
+        db.close()
+    except Exception as e:
+        print(f"[AI] DB write error for CR {cr_id}: {e}")
 
 
 # ─── Helper ───────────────────────────────────────────────────────────────────

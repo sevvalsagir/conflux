@@ -288,65 +288,71 @@ def draw_uc_stakeholder():
 
 # ── UC #4 — System Automated Processes ───────────────────────────────────────
 def draw_uc_system():
-    fig, ax = _uc_setup("Use Case #4 — System Automated Processes", w=16, h=11)
-    _system_boundary(ax, 2.5, 0.8, 11.5, 9.2, "Conflux Platform — Automated Subsystem")
+    fig, ax = _uc_setup("Use Case #4 — AI Analysis & Drift Tracking", w=16, h=11)
+    _system_boundary(ax, 2.5, 0.8, 11.5, 9.2, "Conflux Platform")
 
-    # Two triggering actors on the left
-    actor(ax, 1.0, 8.0, "Project\nMember",  BLUE)
-    actor(ax, 1.0, 3.5, "Project\nManager", GREEN)
-    ap_mem = (1.65, 8.0)
-    ap_pm  = (1.65, 3.5)
+    # External actors
+    actor(ax, 1.0, 8.0, "Project\nMember",      BLUE)
+    actor(ax, 1.0, 5.5, "Timer /\nScheduler",   ORANGE)
+    actor(ax, 1.0, 3.0, "Project\nManager",      GREEN)
+    ap_mem  = (1.65, 8.0)
+    ap_tmr  = (1.65, 5.5)
+    ap_pm   = (1.65, 3.0)
 
-    # System actor on right
-    actor(ax, 14.8, 5.5, "OpenAI\nAPI", PURPLE)
+    # External system actor on right
+    actor(ax, 14.8, 5.5, "OpenRouter\nAPI", PURPLE)
     ap_ai = (14.2, 5.5)
 
-    cases_triggered = [
-        # triggered by member submitting CR
-        (6.5, 9.2, "Submit CR\n(triggers AI)", BLUE),
-        (6.5, 8.0, "AI Impact Analysis\n(async, 5s timeout)", PURPLE),
-        (6.5, 6.8, "Graceful Degradation\n(skip AI if timeout)", PURPLE),
-        (6.5, 5.6, "CR Status: analyzing\n-> under_review", PURPLE),
+    # Use cases — triggered by Member (CR submission → AI analysis)
+    cases_member = [
+        (6.5, 9.0, "Submit Change\nRequest",              BLUE),
+        (6.5, 7.8, "Trigger AI\nImpact Analysis",         PURPLE),
+        (6.5, 6.6, "Graceful Degradation\n(timeout skip)", PURPLE),
     ]
-
-    cases_drift = [
-        # triggered by manager locking baseline / approving CR
-        (6.5, 4.0, "Lock Baseline\n(triggers drift reset)", GREEN),
-        (6.5, 2.8, "Drift Calculation\n(feature + effort + timeline)", RED),
-        (6.5, 1.7, "Drift Level Categorization\nLow / Moderate / High / Critical", RED),
+    # Use cases — triggered by Timer/Scheduler (periodic drift recalc)
+    cases_timer = [
+        (6.5, 5.2, "Recalculate\nDrift Score",            ORANGE),
+        (6.5, 4.0, "Categorize\nDrift Level",             ORANGE),
     ]
-
+    # Use cases — triggered by Manager (baseline lock)
+    cases_manager = [
+        (6.5, 2.8, "Lock Baseline\n(reset drift)",        GREEN),
+        (6.5, 1.7, "Update Drift\nDashboard",             GREEN),
+    ]
+    # Use cases that interact with OpenRouter API (right side)
     cases_right = [
-        (11.5, 8.0, "Generate CR Prompt\n+ Baseline Context",  YELLOW),
-        (11.5, 6.8, "Retrieve Impact Analysis\n(JSON response)", YELLOW),
-        (11.5, 5.6, "Store ai_analysis\nin ChangeRequest",      YELLOW),
-        (11.5, 4.0, "Update Drift Metrics\nin Dashboard",       YELLOW),
-        (11.5, 2.8, "Recalculate Drift\non CR Approval",        YELLOW),
+        (11.5, 7.8, "Send CR Prompt\n+ Baseline Context",  YELLOW),
+        (11.5, 6.6, "Receive Impact\nAnalysis (JSON)",     YELLOW),
+        (11.5, 5.2, "Store ai_analysis\nin Database",      YELLOW),
     ]
 
-    for (x, y, lbl, c) in cases_triggered + cases_drift:
+    for (x, y, lbl, c) in cases_member:
         _uc_ellipse(ax, x, y, lbl, c)
-        if y >= 5.0:
-            _connect(ax, ap_mem, (x - 1.7, y), BLUE)
-        else:
-            _connect(ax, ap_pm, (x - 1.7, y), GREEN)
+        _connect(ax, ap_mem, (x - 1.7, y), BLUE)
+
+    for (x, y, lbl, c) in cases_timer:
+        _uc_ellipse(ax, x, y, lbl, c)
+        _connect(ax, ap_tmr, (x - 1.7, y), ORANGE)
+
+    for (x, y, lbl, c) in cases_manager:
+        _uc_ellipse(ax, x, y, lbl, c)
+        _connect(ax, ap_pm, (x - 1.7, y), GREEN)
 
     for (x, y, lbl, c) in cases_right:
         _uc_ellipse(ax, x, y, lbl, c)
         _connect(ax, ap_ai, (x + 1.7, y), PURPLE)
 
-    # <<include>> chains
-    _include_arrow(ax, (6.5, 9.2), (6.5, 8.0))
-    _include_arrow(ax, (6.5, 8.0), (6.5, 6.8))
-    _include_arrow(ax, (6.5, 8.0), (6.5, 5.6))
-    _include_arrow(ax, (6.5, 4.0), (6.5, 2.8))
+    # <<include>> arrows
+    _include_arrow(ax, (6.5, 9.0), (6.5, 7.8))
+    _include_arrow(ax, (6.5, 7.8), (6.5, 6.6))
+    _include_arrow(ax, (6.5, 5.2), (6.5, 4.0))
     _include_arrow(ax, (6.5, 2.8), (6.5, 1.7))
 
-    # Horizontal flows left→right
+    # Horizontal data flows (left→right)
     flows = [
-        ((6.5, 8.0), (11.5, 8.0), "sends prompt"),
-        ((11.5, 6.8), (6.5, 5.6), "returns JSON"),
-        ((6.5, 2.8), (11.5, 4.0), "updates metrics"),
+        ((6.5, 7.8), (11.5, 7.8), "calls API"),
+        ((11.5, 6.6), (6.5, 6.6), "returns JSON"),
+        ((6.5, 5.2), (11.5, 5.2), "stores result"),
     ]
     for (p1, p2, lbl) in flows:
         ax.annotate("", xy=p2, xytext=p1,
@@ -674,143 +680,197 @@ def activation(ax, x, y_top, y_bot, color):
     ax.add_patch(b)
 
 
-def draw_sequence_auth():
-    fig, ax = plt.subplots(figsize=(18, 12))
+def _seq_frame(title, participants, figw=16, figh=10):
+    """
+    Helper: create fig+ax, draw participant boxes and full-height lifelines.
+    participants = list of (x, label, color)
+    Returns (fig, ax, bottom_y)
+    """
+    fig, ax = plt.subplots(figsize=(figw, figh))
     fig.patch.set_facecolor(BG)
     ax.set_facecolor(BG)
-    ax.set_xlim(0, 18)
-    ax.set_ylim(0, 12)
+    ax.set_xlim(0, figw)
+    ax.set_ylim(0, figh)
     ax.axis("off")
-    section_title(ax, "Sequence Diagram — User Registration & Login")
+    section_title(ax, title)
 
-    actors_x = [1.5, 5.0, 9.0, 13.5]
-    actors_c = [BLUE, GREEN, ORANGE, PURPLE]
-    actors_n = ["user : Browser", "frontend : ReactApp", "api : FastAPI", "db : SQLite"]
+    for (x, label, color) in participants:
+        seq_box(ax, x, figh - 0.9, 2.6, 0.55, label, color)
+        lifeline(ax, x, figh - 1.2, 0.4, color)
 
-    for x, c, n in zip(actors_x, actors_c, actors_n):
-        seq_box(ax, x, 11.2, 2.0, 0.55, n, c)
-        lifeline(ax, x, 10.9, 0.3, c)
+    return fig, ax
 
-    # ── REGISTRATION ──
-    ax.text(0.2, 10.6, "REGISTER", fontsize=8.5, color=GREEN, fontweight="bold",
-            bbox=dict(boxstyle="round", facecolor=GREEN+"22", edgecolor=GREEN, lw=1))
 
-    ys = [10.3, 9.9, 9.5, 9.1, 8.7, 8.3, 7.9, 7.5]
+def draw_sequence_auth():
+    # ── replaced by draw_sequence_login ──
+    draw_sequence_login()
+
+
+def draw_sequence_login():
+    W, H = 16, 9
+    parts = [
+        (2.0,  "User",         BLUE),
+        (6.0,  "Frontend",     GREEN),
+        (10.5, "Backend",      ORANGE),
+        (14.5, "Database",     PURPLE),
+    ]
+    fig, ax = _seq_frame("Sequence Diagram — User Login", parts, W, H)
+
     msgs = [
-        (1.5, 5.0, "Fill form & submit(email, name, password)",         False, False),
-        (5.0, 9.0, "POST /api/auth/register {email, name, password}",   False, False),
-        (9.0, 13.5,"SELECT * FROM users WHERE email=?",                  False, False),
-        (13.5,9.0, "[] (no existing user)",                              True,  True),
-        (9.0, 13.5,"INSERT INTO users (email, hashed_pw, name, ...)",    False, False),
-        (13.5,9.0, "User row created",                                   True,  True),
-        (9.0, 5.0, "200 OK  {id, email, name}",                         True,  True),
-        (5.0, 1.5, "Show success → redirect to login",                   True,  True),
+        # (from_x, to_x, label, dashed, is_return, y)
+        (2.0,  6.0,  "Enter credentials and submit",             False, False, 7.5),
+        (6.0,  10.5, "Send login request",                       False, False, 6.9),
+        (10.5, 14.5, "Look up user by email",                    False, False, 6.3),
+        (14.5, 10.5, "Return user record",                       True,  True,  5.7),
+        (10.5, 10.5, "Verify password",                          False, False, 5.1),   # self-msg
+        (10.5, 6.0,  "Return JWT access token",                  True,  True,  4.5),
+        (6.0,  2.0,  "Store token, navigate to Dashboard",       True,  True,  3.9),
     ]
-    for (x1, x2, lbl, dash, ret), y in zip(msgs, ys):
-        seq_msg(ax, x1, x2, y, lbl, dashed=dash, ret=ret)
-        activation(ax, x1, y + 0.15, y - 0.05, BLUE if x1 == 1.5 else GREEN if x1 == 5.0 else ORANGE)
-
-    # ── LOGIN ──
-    ax.text(0.2, 7.2, "LOGIN", fontsize=8.5, color=BLUE, fontweight="bold",
-            bbox=dict(boxstyle="round", facecolor=BLUE+"22", edgecolor=BLUE, lw=1))
-
-    ys2 = [6.9, 6.5, 6.1, 5.7, 5.3, 4.9, 4.5]
-    msgs2 = [
-        (1.5, 5.0, "Submit login form (email, password)",                False, False),
-        (5.0, 9.0, "POST /api/auth/login {email, password}",             False, False),
-        (9.0, 13.5,"SELECT * FROM users WHERE email=?",                   False, False),
-        (13.5,9.0, "User row {hashed_password, ...}",                    True,  True),
-        (9.0, 9.0, "bcrypt.verify(password, hash)  ✓",                  False, False, "self"),
-        (9.0, 5.0, "200 OK  {access_token, token_type}",                 True,  True),
-        (5.0, 1.5, "Store token in memory → navigate to dashboard",      True,  True),
-    ]
-    for i, ((x1, x2, lbl, *rest), y) in enumerate(zip(msgs2, ys2)):
-        dash = rest[0] if len(rest) > 0 else False
-        ret  = rest[1] if len(rest) > 1 else False
-        self = rest[2] if len(rest) > 2 else None
-        if self == "self":
-            ax.annotate("", xy=(9.5, y), xytext=(9.0, y + 0.12),
-                        arrowprops=dict(arrowstyle="->", color=ORANGE, lw=1.2))
-            ax.plot([9.0, 9.5, 9.5, 9.0], [y+0.12, y+0.12, y, y],
-                    color=ORANGE, lw=1.2)
-            ax.text(9.8, y + 0.06, lbl, fontsize=8, color=YELLOW)
+    for (x1, x2, lbl, dash, ret, y) in msgs:
+        if x1 == x2:   # self-message
+            ax.annotate("", xy=(x1 + 1.0, y - 0.2), xytext=(x1, y),
+                        arrowprops=dict(arrowstyle="->", color=ORANGE, lw=1.3))
+            ax.plot([x1, x1+1.0, x1+1.0], [y, y, y-0.2], color=ORANGE, lw=1.3)
+            ax.text(x1 + 1.15, y - 0.1, lbl, fontsize=8.5, color=YELLOW, va="center")
         else:
             seq_msg(ax, x1, x2, y, lbl, dashed=dash, ret=ret)
 
-    save(fig, "4_3a_sequence_auth.jpg")
+    # activation bars
+    for (x, ytop, ybot, c) in [
+        (6.0,  7.6, 3.8, GREEN),
+        (10.5, 7.0, 4.4, ORANGE),
+        (14.5, 6.4, 5.6, PURPLE),
+    ]:
+        activation(ax, x, ytop, ybot, c)
 
+    save(fig, "4_3a_sequence_login.jpg")
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# 4.3b  SEQUENCE DIAGRAM — CR Submission & AI Analysis
-# ═══════════════════════════════════════════════════════════════════════════════
 
 def draw_sequence_cr():
-    fig, ax = plt.subplots(figsize=(22, 14))
-    fig.patch.set_facecolor(BG)
-    ax.set_facecolor(BG)
-    ax.set_xlim(0, 22)
-    ax.set_ylim(0, 14)
-    ax.axis("off")
-    section_title(ax, "Sequence Diagram — Change Request Submission & AI Analysis")
+    # ── replaced by draw_sequence_cr_submit ──
+    draw_sequence_cr_submit()
 
-    xs = [1.5, 5.0, 9.5, 14.5, 18.5, 21.0]
-    cs = [BLUE, GREEN, ORANGE, PURPLE, RED, YELLOW]
-    ns = ["member : Browser", "frontend : ReactApp", "api : FastAPI",
-          "db : SQLite", "aiSvc : OpenAI", "worker : BackgroundTask"]
 
-    for x, c, n in zip(xs, cs, ns):
-        seq_box(ax, x, 13.2, 2.5 if x > 10 else 2.0, 0.55, n, c)
-        lifeline(ax, x, 12.9, 0.3, c)
-
-    steps = [
-        # (x1, x2, label, dashed, return_arrow, y)
-        (1.5,  5.0,  "Fill CR form (title, description, type)",          False, False, 12.6),
-        (5.0,  9.5,  "POST /api/projects/{id}/change-requests",          False, False, 12.2),
-        (9.5,  14.5, "INSERT change_request (status=draft)",             False, False, 11.8),
-        (14.5, 9.5,  "CR {id, status='draft'}",                          True,  True,  11.4),
-        (9.5,  5.0,  "201 Created {cr}",                                 True,  True,  11.0),
-        (5.0,  1.5,  "Show CR detail → Submit button",                   True,  True,  10.6),
-
-        (1.5,  5.0,  "Click 'Submit CR'",                                False, False, 10.1),
-        (5.0,  9.5,  "PATCH .../status  {status: 'submitted'}",          False, False, 9.7),
-        (9.5,  14.5, "UPDATE cr SET status='analyzing'",                 False, False, 9.3),
-        (9.5,  21.0, "background_task(_run_ai_analysis, cr_id)",         False, False, 8.9),
-        (9.5,  5.0,  "200 OK  {status: 'analyzing'}",                    True,  True,  8.5),
-        (5.0,  1.5,  "Show 'Analyzing...' spinner",                      True,  True,  8.1),
+def draw_sequence_cr_submit():
+    W, H = 18, 10
+    parts = [
+        (2.0,  "Member",       BLUE),
+        (6.0,  "Frontend",     GREEN),
+        (10.5, "Backend",      ORANGE),
+        (14.5, "Database",     PURPLE),
+        (17.5, "AI Service",   YELLOW),
     ]
+    fig, ax = _seq_frame("Sequence Diagram — Change Request Submission & AI Analysis", parts, W, H)
 
-    for (x1, x2, lbl, dash, ret, y) in steps:
+    msgs = [
+        (2.0,  6.0,  "Fill in CR form (title, description, type)",  False, False, 8.6),
+        (6.0,  10.5, "Submit change request",                       False, False, 8.0),
+        (10.5, 14.5, "Save CR with status: draft",                  False, False, 7.4),
+        (14.5, 10.5, "Confirm saved",                               True,  True,  6.8),
+        (2.0,  6.0,  "Click 'Submit for Review'",                   False, False, 6.2),
+        (6.0,  10.5, "Update CR status to submitted",               False, False, 5.6),
+        (10.5, 14.5, "Update status: analyzing",                    False, False, 5.0),
+        (10.5, 17.5, "Trigger AI analysis (background)",            False, False, 4.4),
+        (6.0,  2.0,  "Show 'Analyzing...' indicator",              True,  True,  3.8),
+        (17.5, 14.5, "Fetch baseline features & milestones",        False, False, 3.1),
+        (17.5, 17.5, "Generate impact analysis",                    False, False, 2.5),  # self
+        (17.5, 14.5, "Save analysis, set status: under_review",     False, False, 1.9),
+    ]
+    for (x1, x2, lbl, dash, ret, y) in msgs:
+        if x1 == x2:
+            ax.annotate("", xy=(x1 + 0.9, y - 0.2), xytext=(x1, y),
+                        arrowprops=dict(arrowstyle="->", color=YELLOW, lw=1.3))
+            ax.plot([x1, x1+0.9, x1+0.9], [y, y, y-0.2], color=YELLOW, lw=1.3)
+            ax.text(x1 + 1.05, y - 0.1, lbl, fontsize=8.5, color=YELLOW, va="center")
+        else:
+            seq_msg(ax, x1, x2, y, lbl, dashed=dash, ret=ret)
+
+    for (x, ytop, ybot, c) in [
+        (6.0,  8.7, 3.7, GREEN),
+        (10.5, 8.1, 1.8, ORANGE),
+        (14.5, 7.5, 1.8, PURPLE),
+        (17.5, 4.3, 1.8, YELLOW),
+    ]:
+        activation(ax, x, ytop, ybot, c)
+
+    save(fig, "4_3c_sequence_cr_submit.jpg")
+
+
+def draw_sequence_project():
+    W, H = 16, 9
+    parts = [
+        (2.0,  "Project Manager", BLUE),
+        (6.0,  "Frontend",        GREEN),
+        (10.5, "Backend",         ORANGE),
+        (14.5, "Database",        PURPLE),
+    ]
+    fig, ax = _seq_frame("Sequence Diagram — Project Creation & Baseline Setup", parts, W, H)
+
+    msgs = [
+        (2.0,  6.0,  "Fill project form (name, description)",           False, False, 7.5),
+        (6.0,  10.5, "Send create project request",                     False, False, 6.9),
+        (10.5, 14.5, "Save project record",                             False, False, 6.3),
+        (10.5, 14.5, "Create default baseline for project",             False, False, 5.7),
+        (10.5, 14.5, "Add creator as Project Manager member",           False, False, 5.1),
+        (14.5, 10.5, "Confirm all records saved",                       True,  True,  4.5),
+        (10.5, 6.0,  "Return project data",                             True,  True,  3.9),
+        (6.0,  2.0,  "Navigate to project dashboard",                   True,  True,  3.3),
+        (2.0,  6.0,  "Add features, milestones to baseline",            False, False, 2.6),
+        (2.0,  6.0,  "Lock baseline when planning is complete",         False, False, 2.0),
+    ]
+    for (x1, x2, lbl, dash, ret, y) in msgs:
         seq_msg(ax, x1, x2, y, lbl, dashed=dash, ret=ret)
 
-    # Background worker block
-    bg_rect = FancyBboxPatch((19.5, 2.0), 3.0, 5.8,
-                             boxstyle="round,pad=0.1",
-                             linewidth=1.5, edgecolor=YELLOW + "88",
-                             facecolor=YELLOW + "08", zorder=1)
-    ax.add_patch(bg_rect)
-    ax.text(21.0, 7.95, "«async»", ha="center", fontsize=8,
-            color=YELLOW, style="italic")
+    for (x, ytop, ybot, c) in [
+        (6.0,  7.6, 1.9, GREEN),
+        (10.5, 7.0, 4.4, ORANGE),
+        (14.5, 6.4, 4.4, PURPLE),
+    ]:
+        activation(ax, x, ytop, ybot, c)
 
-    bg_steps = [
-        (21.0, 14.5, "SELECT baseline, features, milestones",            False, False, 7.6),
-        (14.5, 21.0, "baseline context {features, milestones}",          True,  True,  7.2),
-        (21.0, 18.5, "POST /v1/chat/completions (prompt + context)",     False, False, 6.8),
-        (18.5, 21.0, "{timeline_impact, risk_score, risk_level, ...}",   True,  True,  6.4),
-        (21.0, 14.5, "UPDATE cr SET ai_analysis=..., status='under_review'", False, False, 6.0),
-        (14.5, 21.0, "OK",                                               True,  True,  5.6),
+    save(fig, "4_3b_sequence_project.jpg")
+
+
+def draw_sequence_cr_review():
+    W, H = 16, 9
+    parts = [
+        (2.0,  "Project Manager", BLUE),
+        (6.0,  "Frontend",        GREEN),
+        (10.5, "Backend",         ORANGE),
+        (14.5, "Database",        PURPLE),
     ]
-    for (x1, x2, lbl, dash, ret, y) in bg_steps:
-        seq_msg(ax, x1, x2, y, lbl, dashed=dash, ret=ret,
-                color=YELLOW if not ret else GREY)
+    fig, ax = _seq_frame("Sequence Diagram — CR Review & Decision", parts, W, H)
 
-    # Timeout note
-    ax.text(18.5, 5.0,
-            "⚠  Timeout (5s) or error:\n→ status = 'under_review'\n   (no AI analysis)",
-            ha="center", va="center", fontsize=8, color=RED,
-            bbox=dict(boxstyle="round", facecolor=RED+"22",
-                      edgecolor=RED, lw=1))
+    msgs = [
+        (2.0,  6.0,  "Open change request detail page",                 False, False, 7.5),
+        (6.0,  10.5, "Fetch CR details and AI analysis",                False, False, 6.9),
+        (10.5, 14.5, "Query CR, comments, AI analysis",                 False, False, 6.3),
+        (14.5, 10.5, "Return CR data",                                  True,  True,  5.7),
+        (10.5, 6.0,  "Return full CR details",                          True,  True,  5.1),
+        (6.0,  2.0,  "Display AI analysis and CR info",                 True,  True,  4.5),
+        (2.0,  6.0,  "Write decision note, click Approve / Reject",     False, False, 3.8),
+        (6.0,  10.5, "Send decision with note",                         False, False, 3.2),
+        (10.5, 10.5, "Validate manager role & transition rules",        False, False, 2.7),  # self
+        (10.5, 14.5, "Update CR status and decision note",              False, False, 2.1),
+        (10.5, 6.0,  "Return updated CR",                               True,  True,  1.5),
+    ]
+    for (x1, x2, lbl, dash, ret, y) in msgs:
+        if x1 == x2:
+            ax.annotate("", xy=(x1 + 1.0, y - 0.2), xytext=(x1, y),
+                        arrowprops=dict(arrowstyle="->", color=ORANGE, lw=1.3))
+            ax.plot([x1, x1+1.0, x1+1.0], [y, y, y-0.2], color=ORANGE, lw=1.3)
+            ax.text(x1 + 1.15, y - 0.1, lbl, fontsize=8.5, color=YELLOW, va="center")
+        else:
+            seq_msg(ax, x1, x2, y, lbl, dashed=dash, ret=ret)
 
-    save(fig, "4_3b_sequence_cr_ai.jpg")
+    for (x, ytop, ybot, c) in [
+        (6.0,  7.6, 1.4, GREEN),
+        (10.5, 7.0, 1.4, ORANGE),
+        (14.5, 6.4, 2.0, PURPLE),
+    ]:
+        activation(ax, x, ytop, ybot, c)
+
+    save(fig, "4_3d_sequence_cr_review.jpg")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1087,8 +1147,10 @@ if __name__ == "__main__":
     draw_uc_stakeholder()
     draw_uc_system()
     draw_class_diagram()
-    draw_sequence_auth()
-    draw_sequence_cr()
+    draw_sequence_login()
+    draw_sequence_project()
+    draw_sequence_cr_submit()
+    draw_sequence_cr_review()
     draw_dfd()
     draw_state_diagram()
 

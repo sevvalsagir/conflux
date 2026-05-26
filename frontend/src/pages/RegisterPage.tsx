@@ -32,7 +32,7 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg-base flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-100 dark:bg-bg-base flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-3 mb-8">
           <div className="w-10 h-10 rounded-xl bg-accent-green flex items-center justify-center">
@@ -40,13 +40,13 @@ export function RegisterPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold">Conflux</h1>
-            <p className="text-xs text-gray-400">Scope management platform</p>
+            <p className="text-xs text-slate-500 dark:text-gray-400">Scope management platform</p>
           </div>
         </div>
 
         <div className="card p-6">
           <h2 className="text-lg font-semibold mb-1">Create account</h2>
-          <p className="text-sm text-gray-400 mb-6">Join Conflux to manage your projects</p>
+          <p className="text-sm text-slate-500 dark:text-gray-400 mb-6">Join Conflux to manage your projects</p>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Input
@@ -84,7 +84,7 @@ export function RegisterPage() {
             </Button>
           </form>
 
-          <p className="text-center text-sm text-gray-400 mt-5">
+          <p className="text-center text-sm text-slate-500 dark:text-gray-400 mt-5">
             Already have an account?{' '}
             <Link to="/login" className="text-accent-green hover:underline">
               Sign in
