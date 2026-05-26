@@ -91,8 +91,11 @@ function buildRoadmapItems(
 
     let end = addDays(start, Math.max(f.effort_days, 1))
 
-    // When completed: cap bar at today so it shows actual finish (not future estimate)
-    if (f.status === 'completed' && end > today) end = new Date(today)
+    // Completed = bar ends today (actual finish date), never a future estimate
+    if (f.status === 'completed') {
+      end = new Date(today)
+      if (end <= start) end = addDays(start, 1) // guard: start can't be after end
+    }
 
     laneEnd[lane] = addDays(end, 2)
 
@@ -122,7 +125,10 @@ function buildRoadmapItems(
     const effort = cr.ai_analysis ? 10 : 8
     let end = addDays(start, effort)
     const featureStatus = crStatusToFeatureStatus(cr.status)
-    if (featureStatus === 'completed' && end > today) end = new Date(today)
+    if (featureStatus === 'completed') {
+      end = new Date(today)
+      if (end <= start) end = addDays(start, 1)
+    }
     const assigned: ProjectMember[] = members.length > 0 ? [members[i % members.length]] : []
     items.push({
       id: -(cr.id), name: cr.title, description: cr.description, effort_days: effort,
@@ -292,10 +298,10 @@ function SidePanel({
 
       {/* Drawer */}
       <div
-        className={`relative w-full max-w-sm bg-bg-surface border-l border-bg-border shadow-2xl overflow-y-auto animate-slide-in-right ${saving ? 'opacity-70 pointer-events-none' : ''}`}
+        className={`relative w-full max-w-sm bg-bg-card border-l border-bg-border shadow-2xl overflow-y-auto animate-slide-in-right ${saving ? 'opacity-70 pointer-events-none' : ''}`}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-bg-surface flex items-start justify-between p-5 border-b border-bg-border">
+        <div className="sticky top-0 z-10 bg-bg-card flex items-start justify-between p-5 border-b border-bg-border">
           <div className="flex-1 min-w-0 pr-3">
             <div className="flex items-center gap-2 mb-1">
               {item.isFromCR ? (
@@ -468,7 +474,7 @@ function SidePanel({
                       Assign
                     </button>
                     {showAssignees && (
-                      <div className="absolute z-10 top-full left-0 mt-1.5 bg-bg-surface border border-bg-border rounded-xl shadow-xl p-1.5 min-w-[200px]">
+                      <div className="absolute z-10 top-full left-0 mt-1.5 bg-bg-card border border-bg-border rounded-xl shadow-xl p-1.5 min-w-[200px]">
                         {unassignedMembers.map(m => (
                           <button
                             key={m.user_id}
