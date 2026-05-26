@@ -8,6 +8,14 @@ from routers import auth, projects, baselines, change_requests, drift
 # Create all tables on startup
 Base.metadata.create_all(bind=engine)
 
+# Auto-seed demo data if SEED_DEMO=true (Railway demo deployment)
+if os.getenv("SEED_DEMO", "").lower() == "true":
+    try:
+        from seed_demo import seed
+        seed()
+    except Exception as _seed_err:
+        print(f"[seed] Warning: {_seed_err}")
+
 app = FastAPI(
     title="Conflux API",
     description="Project scope management and change control platform",
