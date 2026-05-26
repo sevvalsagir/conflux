@@ -11,14 +11,18 @@ export default defineConfig({
     },
   },
   build: {
-    chunkSizeWarningLimit: 600,
+    // react-dom alone is ~130 kB minified; combined with React 18 internals
+    // the renderer chunk is legitimately large — 1000 kB is a realistic ceiling
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-store': ['zustand'],
-          'vendor-http':  ['axios'],
-          'vendor-utils': ['clsx'],
+          // Split react-dom (heavy renderer) from the lighter react + router
+          'vendor-react-dom':    ['react-dom'],
+          'vendor-react-router': ['react', 'react-router-dom'],
+          'vendor-store':        ['zustand'],
+          'vendor-http':         ['axios'],
+          'vendor-utils':        ['clsx'],
         },
       },
     },
