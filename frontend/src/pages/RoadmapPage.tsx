@@ -74,20 +74,43 @@ function buildRoadmapItems(
 
   sorted.forEach((f, i) => {
     const lane = i % 2
-    const otherLane = 1 - lane
-    let start = new Date(Math.min(laneEnd[lane].getTime(), laneEnd[otherLane].getTime() + DAY_MS * 3))
-    if (start < projectStart) start = new Date(projectStart)
-    if (f.status === 'in_progress') {
-      const today = new Date()
-      if (start > today) start = addDays(today, -Math.floor(f.effort_days * 0.4))
+    let start: Date
+
+    if (f.start_date) {
+      // Use the explicitly set start date from the baseline
+      start = new Date(f.start_date)
+    } else {
+      // Auto-calculate based on lane availability
+      const otherLane = 1 - lane
+      start = new Date(Math.min(laneEnd[lane].getTime(), laneEnd[otherLane].getTime() + DAY_MS * 3))
+      if (start < projectStart) start = new Date(projectStart)
+      if (f.status === 'in_progress') {
+        const today = new Date()
+        if (start > today) start = addDays(today, -Math.floor(f.effort_days * 0.4))
+      }
     }
-    const end = addDays(start, f.effort_days)
+
+    const end = addDays(start, Math.max(f.effort_days, 1))
     laneEnd[lane] = addDays(end, 2)
-    const assigned: ProjectMember[] = []
-    if (members.length > 0) assigned.push(members[i % members.length])
-    if (members.length > 1 && f.effort_days > 10) assigned.push(members[(i + 1) % members.length])
-    items.push({ id: f.id, name: f.name, description: f.description, effort_days: f.effort_days,
-      status: f.status, startDate: start, endDate: end, isFromCR: false, assignedMembers: assigned, lane })
+
+    // Use actual assignees if set, otherwise fall back to round-robin
+    const assignedIds = f.assignee_ids ?? []
+    let assigned: ProjectMember[]
+    if (assignedIds.length > 0) {
+      assigned = members.filter(m => assignedIds.includes(m.user_id))
+    } else {
+      assigned = members.length > 0
+        ? [
+            members[i % members.length],
+            ...(members.length > 1 && f.effort_days > 10 ? [members[(i + 1) % members.length]] : []),
+          ]
+        : []
+    }
+
+    items.push({
+      id: f.id, name: f.name, description: f.description, effort_days: f.effort_days,
+      status: f.status, startDate: start, endDate: end, isFromCR: false, assignedMembers: assigned, lane,
+    })
   })
 
   approvedCRs.filter(cr => cr.cr_type === 'feature_add').forEach((cr, i) => {

@@ -108,7 +108,6 @@ def update_feature(
 ):
     require_member_or_manager(project_id, current_user, db)
     baseline = _get_baseline_or_404(project_id, db)
-    _check_not_locked(baseline)
 
     feature = db.query(models.Feature).filter(
         models.Feature.id == feature_id,
@@ -117,7 +116,18 @@ def update_feature(
     if not feature:
         raise HTTPException(status_code=404, detail="Feature not found.")
 
-    for field, value in body.model_dump(exclude_none=True).items():
+    # Scope fields are blocked when baseline is locked
+    SCOPE_FIELDS = {"name", "description", "effort_days"}
+    updates = body.model_dump(exclude_none=True)
+    if baseline.is_locked:
+        blocked = SCOPE_FIELDS & updates.keys()
+        if blocked:
+            raise HTTPException(
+                status_code=400,
+                detail="Baseline is locked. Cannot change scope fields. Use a Change Request."
+            )
+
+    for field, value in updates.items():
         setattr(feature, field, value)
 
     db.commit()

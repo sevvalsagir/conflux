@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List, Any
 from datetime import datetime
 from models import UserRole, CRStatus, CRType, FeatureStatus
@@ -67,12 +67,16 @@ class FeatureCreate(BaseModel):
     name: str
     description: str = ""
     effort_days: float = 0
+    start_date: Optional[str] = None
+    assignee_ids: Optional[List[int]] = []
 
 class FeatureUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     effort_days: Optional[float] = None
     status: Optional[FeatureStatus] = None
+    start_date: Optional[str] = None
+    assignee_ids: Optional[List[int]] = None
 
 class FeatureOut(BaseModel):
     id: int
@@ -80,7 +84,14 @@ class FeatureOut(BaseModel):
     description: str
     effort_days: float
     status: FeatureStatus
+    start_date: Optional[str] = None
+    assignee_ids: List[int] = []
     created_at: datetime
+
+    @field_validator('assignee_ids', mode='before')
+    @classmethod
+    def coerce_none_assignees(cls, v):
+        return v if v is not None else []
 
     class Config:
         from_attributes = True

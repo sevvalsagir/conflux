@@ -38,6 +38,8 @@ export interface Feature {
   description: string
   effort_days: number
   status: FeatureStatus
+  start_date?: string | null
+  assignee_ids?: number[]
   created_at: string
 }
 

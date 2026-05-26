@@ -8,6 +8,26 @@ from routers import auth, projects, baselines, change_requests, drift
 # Create all tables on startup
 Base.metadata.create_all(bind=engine)
 
+
+def _run_migrations():
+    """Idempotent: add any new columns that were introduced after the initial deploy."""
+    from sqlalchemy import text, inspect as sa_inspect
+    try:
+        insp = sa_inspect(engine)
+        feature_cols = [c['name'] for c in insp.get_columns('features')]
+        with engine.begin() as conn:
+            if 'start_date' not in feature_cols:
+                conn.execute(text("ALTER TABLE features ADD COLUMN start_date VARCHAR"))
+                print("[migration] Added column: features.start_date")
+            if 'assignee_ids' not in feature_cols:
+                conn.execute(text("ALTER TABLE features ADD COLUMN assignee_ids JSON"))
+                print("[migration] Added column: features.assignee_ids")
+    except Exception as e:
+        print(f"[migration] Warning: {e}")
+
+
+_run_migrations()
+
 # Auto-seed demo data if SEED_DEMO=true (Railway demo deployment)
 if os.getenv("SEED_DEMO", "").lower() == "true":
     try:

@@ -118,6 +118,8 @@ class Feature(Base):
     description = Column(Text, default="")
     effort_days = Column(Float, default=0)
     status = Column(Enum(FeatureStatus), default=FeatureStatus.planned)
+    start_date = Column(String, nullable=True)          # ISO date string e.g. "2026-06-01"
+    assignee_ids = Column(JSON, default=list)           # list of user IDs e.g. [1, 3]
     created_at = Column(DateTime, server_default=func.now())
 
     baseline = relationship("Baseline", back_populates="features")

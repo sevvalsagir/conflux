@@ -73,23 +73,41 @@ def seed():
         db.add(baseline)
         db.flush()
 
-        # Features
-        features = [
-            ("User Authentication & RBAC",      "JWT-based auth with role-based access control and session management.",           10, "completed"),
-            ("Product Catalog & Search",         "Full-text product search with filters, sorting, and paginated results.",         15, "in_progress"),
-            ("Shopping Cart & Checkout",         "Multi-step checkout flow with order summary, address autofill, and validation.", 12, "planned"),
-            ("Payment Gateway Integration",      "Stripe integration with webhooks for payment confirmation and refunds.",          8, "planned"),
-            ("Admin Dashboard & Analytics",      "Sales analytics, inventory management, and user administration panel.",          10, "planned"),
-            ("Mobile Responsive Design",         "Fully responsive UI optimised for all screen sizes and touch interactions.",      7, "completed"),
-            ("Performance Optimisation",         "CDN setup, image lazy loading, API response caching, and bundle splitting.",      5, "planned"),
+        # Features: (name, desc, effort, status, start_date_offset_days, assignee_ids_keys)
+        # start_date_offset_days is relative to `now`; assignee_ids_keys = list of user vars
+        feature_defs = [
+            ("User Authentication & RBAC",
+             "JWT-based auth with role-based access control and session management.",
+             10, "completed",   -30, [manager, member]),
+            ("Mobile Responsive Design",
+             "Fully responsive UI optimised for all screen sizes and touch interactions.",
+             7,  "completed",   -25, [member]),
+            ("Product Catalog & Search",
+             "Full-text product search with filters, sorting, and paginated results.",
+             15, "in_progress", -14, [member]),
+            ("Shopping Cart & Checkout",
+             "Multi-step checkout flow with order summary, address autofill, and validation.",
+             12, "planned",       5, [member, manager]),
+            ("Payment Gateway Integration",
+             "Stripe integration with webhooks for payment confirmation and refunds.",
+             8,  "planned",      20, [manager]),
+            ("Admin Dashboard & Analytics",
+             "Sales analytics, inventory management, and user administration panel.",
+             10, "planned",      35, [manager, member]),
+            ("Performance Optimisation",
+             "CDN setup, image lazy loading, API response caching, and bundle splitting.",
+             5,  "planned",      50, [member]),
         ]
-        for name, desc, effort, status in features:
+        for name, desc, effort, status, offset, assignees in feature_defs:
+            start_dt = (now + timedelta(days=offset)).strftime("%Y-%m-%d")
             db.add(models.Feature(
                 baseline_id=baseline.id,
                 name=name,
                 description=desc,
                 effort_days=effort,
                 status=models.FeatureStatus[status],
+                start_date=start_dt,
+                assignee_ids=[u.id for u in assignees],
             ))
 
         # Milestones
