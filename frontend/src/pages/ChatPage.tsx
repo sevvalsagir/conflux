@@ -75,8 +75,8 @@ export function ChatPage() {
   const otherMembers = members.filter(m => m.user_id !== user?.id)
 
   return (
-    <AppLayout>
-      <div className="flex h-full overflow-hidden">
+    <AppLayout fullHeight>
+      <div className="flex flex-1 overflow-hidden">
         {/* ── Left sidebar: channels + members ─────────────────── */}
         <aside className="w-60 shrink-0 flex flex-col border-r border-slate-200 dark:border-bg-border bg-white dark:bg-bg-card">
           <div className="px-4 py-4 border-b border-slate-200 dark:border-bg-border">
