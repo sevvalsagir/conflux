@@ -10,4 +10,17 @@ export default defineConfig({
       '/api': 'http://localhost:8000',
     },
   },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-store': ['zustand'],
+          'vendor-http':  ['axios'],
+          'vendor-utils': ['clsx'],
+        },
+      },
+    },
+  },
 })
