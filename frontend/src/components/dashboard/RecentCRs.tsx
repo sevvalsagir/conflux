@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
-import { formatDistanceToNow } from 'date-fns'
 import type { ChangeRequest } from '../../types'
 import { CRStatusBadge } from '../ui/Badge'
+import { timeAgoLong } from '../../utils/time'
 
 interface RecentCRsProps {
   crs: ChangeRequest[]
@@ -39,7 +39,7 @@ export function RecentCRs({ crs, projectId }: RecentCRsProps) {
                   {cr.title}
                 </p>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  {formatDistanceToNow(new Date(cr.created_at), { addSuffix: true })}
+                  {timeAgoLong(cr.created_at)}
                   {' · '}{cr.submitted_by.name}
                 </p>
               </div>

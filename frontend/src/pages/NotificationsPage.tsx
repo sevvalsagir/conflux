@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { AppLayout } from '../components/layout/AppLayout'
 import { useNotificationStore } from '../store'
+import { timeAgo } from '../utils/time'
 import type { Notification } from '../types'
 
 const TYPE_ICONS: Record<string, string> = {
@@ -22,16 +23,6 @@ const TYPE_COLORS: Record<string, string> = {
   feature:     'bg-pink-500/10 text-pink-400',
 }
 
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  const days = Math.floor(hrs / 24)
-  return `${days}d ago`
-}
 
 function NotifRow({ notif, onRead }: { notif: Notification; onRead: (id: number) => void }) {
   const icon = TYPE_ICONS[notif.notif_type] ?? '🔔'

@@ -4,6 +4,7 @@ import { useProjectStore, useBaselineStore, useCRStore, useActivityStore } from 
 import { baselineApi, crApi } from '../api'
 import { AppLayout } from '../components/layout/AppLayout'
 import { PageSpinner } from '../components/ui/Spinner'
+import { fmtMonthYear, fmtMonthDay, timeAgo } from '../utils/time'
 import type { Feature, FeatureStatus, ChangeRequest, ProjectMember, CRStatus, ActivityLog } from '../types'
 
 function toISODate(d: Date) {
@@ -45,10 +46,10 @@ function addDays(d: Date, n: number) {
   const r = new Date(d); r.setDate(r.getDate() + n); return r
 }
 function formatMonth(d: Date) {
-  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+  return fmtMonthYear(d)
 }
 function formatDay(d: Date) {
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return fmtMonthDay(d)
 }
 function initials(name: string) {
   return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase()
@@ -1266,15 +1267,7 @@ export function RoadmapPage() {
                         meeting_deleted: '❌',
                       }
                       const icon = ACTION_ICONS[log.action_type] ?? '•'
-                      const relTime = (() => {
-                        const diff = Date.now() - new Date(log.created_at).getTime()
-                        const mins = Math.floor(diff / 60000)
-                        if (mins < 1) return 'just now'
-                        if (mins < 60) return `${mins}m ago`
-                        const hrs = Math.floor(mins / 60)
-                        if (hrs < 24) return `${hrs}h ago`
-                        return `${Math.floor(hrs / 24)}d ago`
-                      })()
+                      const relTime = timeAgo(log.created_at)
                       return (
                         <div key={log.id} className="flex gap-3 pl-1 pb-4 relative">
                           {/* dot */}

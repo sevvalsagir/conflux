@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { AppLayout } from '../components/layout/AppLayout'
 import { useAuthStore, useChatStore, useProjectStore } from '../store'
+import { fmtChatTime, parseUTC } from '../utils/time'
 import type { User } from '../types'
 
 function Avatar({ name, size = 8 }: { name: string; size?: number }) {
@@ -17,14 +18,6 @@ function Avatar({ name, size = 8 }: { name: string; size?: number }) {
   )
 }
 
-function formatTime(iso: string) {
-  const d = new Date(iso)
-  const now = new Date()
-  const isToday = d.toDateString() === now.toDateString()
-  if (isToday) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' +
-    d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-}
 
 export function ChatPage() {
   const { projectId } = useParams<{ projectId: string }>()
@@ -161,7 +154,7 @@ export function ChatPage() {
               const isMe = msg.sender_id === user?.id
               const prevMsg = messages[i - 1]
               const showSender = !prevMsg || prevMsg.sender_id !== msg.sender_id ||
-                (new Date(msg.created_at).getTime() - new Date(prevMsg.created_at).getTime()) > 300000
+                (parseUTC(msg.created_at).getTime() - parseUTC(prevMsg.created_at).getTime()) > 300000
 
               return (
                 <div key={msg.id} className={`flex gap-3 ${showSender ? 'mt-4' : 'mt-0.5'} ${isMe ? 'flex-row-reverse' : ''}`}>
@@ -176,7 +169,7 @@ export function ChatPage() {
                         <span className="text-sm font-semibold text-slate-700 dark:text-gray-200">
                           {isMe ? 'You' : msg.sender.name}
                         </span>
-                        <span className="text-xs text-slate-400 dark:text-gray-600">{formatTime(msg.created_at)}</span>
+                        <span className="text-xs text-slate-400 dark:text-gray-600">{fmtChatTime(msg.created_at)}</span>
                       </div>
                     )}
                     <div className={`rounded-2xl px-4 py-2 text-sm leading-relaxed break-words ${

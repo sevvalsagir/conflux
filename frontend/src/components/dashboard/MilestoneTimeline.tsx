@@ -1,5 +1,5 @@
-import { format, isPast, parseISO } from 'date-fns'
 import type { Milestone } from '../../types'
+import { fmtDate } from '../../utils/time'
 
 interface MilestoneTimelineProps {
   milestones: Milestone[]
@@ -17,7 +17,7 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
       ) : (
         <div className="flex flex-col gap-3">
           {sorted.map((m, i) => {
-            const isOverdue = !m.is_completed && isPast(parseISO(m.due_date))
+            const isOverdue = !m.is_completed && new Date(m.due_date + 'T23:59:59') < new Date()
             return (
               <div key={m.id} className="flex items-start gap-3">
                 {/* Timeline dot + line */}
@@ -41,7 +41,7 @@ export function MilestoneTimeline({ milestones }: MilestoneTimelineProps) {
                     {m.name}
                   </p>
                   <p className={`text-xs mt-0.5 ${isOverdue ? 'text-red-400' : 'text-gray-500'}`}>
-                    {format(parseISO(m.due_date), 'MMM d, yyyy')}
+                    {fmtDate(m.due_date + 'T00:00:00')}
                     {isOverdue && ' — Overdue'}
                     {m.is_completed && ' — Completed'}
                   </p>

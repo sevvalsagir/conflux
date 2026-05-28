@@ -9,7 +9,7 @@ import { Modal } from '../components/ui/Modal'
 import { Badge } from '../components/ui/Badge'
 import { PageSpinner } from '../components/ui/Spinner'
 import type { Feature, Milestone, FeatureStatus } from '../types'
-import { format, parseISO } from 'date-fns'
+import { fmtDate } from '../utils/time'
 
 // ─── Status badge colors ──────────────────────────────────────────────────────
 
@@ -144,7 +144,7 @@ export function BaselinePage() {
           <div>
             <p className="text-sm font-semibold text-accent-green">Baseline is locked</p>
             <p className="text-xs text-accent-green/70">
-              Locked on {baseline.locked_at ? format(parseISO(baseline.locked_at), 'MMM d, yyyy') : '—'}.
+              Locked on {baseline.locked_at ? fmtDate(baseline.locked_at) : '—'}.
               Scope fields are frozen — submit a Change Request to modify name, description, or effort.
               Use the <strong>Roadmap</strong> to update status, dates, and assignees.
             </p>
@@ -242,7 +242,7 @@ export function BaselinePage() {
                     <p className={`text-sm font-medium ${m.is_completed ? 'line-through text-gray-500' : ''}`}>
                       {m.name}
                     </p>
-                    <p className="text-xs text-gray-400">{format(parseISO(m.due_date), 'MMM d, yyyy')}</p>
+                    <p className="text-xs text-gray-400">{fmtDate(m.due_date + 'T00:00:00')}</p>
                   </div>
                   {m.is_completed && <Badge label="Done" color="green" />}
                   {!baseline.is_locked && (
@@ -309,7 +309,7 @@ export function BaselinePage() {
                       <>
                         <span className="text-gray-700">·</span>
                         <span className="text-[10px] text-gray-500">
-                          {format(new Date(cr.decided_at), 'MMM d, yyyy')}
+                          {fmtDate(cr.decided_at)}
                         </span>
                       </>
                     )}

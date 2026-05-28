@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { AppLayout } from '../components/layout/AppLayout'
 import { useAuthStore, useMeetingStore, useProjectStore } from '../store'
+import { fmtWeekdayLong } from '../utils/time'
 import type { Meeting } from '../types'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -317,7 +318,7 @@ export function MeetingsPage() {
           <div className="mb-4">
             <p className="text-xs font-semibold text-slate-500 dark:text-gray-500 uppercase tracking-wide mb-0.5">Selected</p>
             <p className="text-lg font-bold text-slate-800 dark:text-white">
-              {new Date(selectedDate + 'T12:00').toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}
+              {fmtWeekdayLong(selectedDate)}
             </p>
           </div>
 

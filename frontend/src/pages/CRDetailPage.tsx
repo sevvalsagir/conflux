@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { format } from 'date-fns'
+import { fmtDate, fmtDateTime } from '../utils/time'
 import { useCRStore, useAuthStore, useProjectStore } from '../store'
 import { crApi } from '../api'
 import { AppLayout } from '../components/layout/AppLayout'
@@ -122,7 +122,7 @@ export function CRDetailPage() {
                 <span>·</span>
                 <span>by {cr.submitted_by.name}</span>
                 <span>·</span>
-                <span>{format(new Date(cr.created_at), 'MMM d, yyyy')}</span>
+                <span>{fmtDate(cr.created_at)}</span>
               </div>
               <h2 className="text-xl font-bold">{cr.title}</h2>
             </div>
@@ -228,7 +228,7 @@ export function CRDetailPage() {
           }`}>
             <p className="text-xs text-gray-400 mb-1 uppercase tracking-wider font-medium">
               {cr.status} by {cr.decided_by?.name}
-              {cr.decided_at ? ` · ${format(new Date(cr.decided_at), 'MMM d, yyyy')}` : ''}
+              {cr.decided_at ? ` · ${fmtDate(cr.decided_at)}` : ''}
             </p>
             <p className="text-sm text-gray-800 dark:text-gray-200">{cr.decision_note}</p>
           </div>
@@ -250,7 +250,7 @@ export function CRDetailPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm font-medium">{c.user.name}</span>
-                    <span className="text-xs text-gray-500">{format(new Date(c.created_at), 'MMM d, HH:mm')}</span>
+                    <span className="text-xs text-gray-500">{fmtDateTime(c.created_at)}</span>
                   </div>
                   <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{c.text}</p>
                 </div>

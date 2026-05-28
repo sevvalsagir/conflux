@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { formatDistanceToNow } from 'date-fns'
+import { timeAgoLong } from '../utils/time'
 import { useCRStore } from '../store'
 import { crApi } from '../api'
 import { AppLayout } from '../components/layout/AppLayout'
@@ -119,7 +119,7 @@ export function ChangeRequestsPage() {
                   </h3>
                   <p className="text-sm text-gray-400 mt-1 line-clamp-2">{cr.description}</p>
                   <p className="text-xs text-gray-600 mt-2">
-                    {cr.submitted_by.name} · {formatDistanceToNow(new Date(cr.created_at), { addSuffix: true })}
+                    {cr.submitted_by.name} · {timeAgoLong(cr.created_at)}
                   </p>
                 </div>
                 <CRStatusBadge status={cr.status} />

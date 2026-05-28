@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { formatDistanceToNow } from 'date-fns'
 import { useProjectStore } from '../store'
+import { timeAgoLong } from '../utils/time'
 import type { Project } from '../types'
 import { Button } from '../components/ui/Button'
 import { Input, Textarea } from '../components/ui/Input'
@@ -108,7 +108,7 @@ export function ProjectsPage() {
                     <p className="text-sm text-gray-400 mt-1 line-clamp-2">{project.description}</p>
                   )}
                   <p className="text-xs text-gray-600 mt-3">
-                    Created {formatDistanceToNow(new Date(project.created_at), { addSuffix: true })}
+                    Created {timeAgoLong(project.created_at)}
                   </p>
                 </button>
 
