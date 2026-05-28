@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow } from 'date-fns'
 import { useProjectStore } from '../store'
+import type { Project } from '../types'
 import { Button } from '../components/ui/Button'
 import { Input, Textarea } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
@@ -9,12 +10,17 @@ import { PageSpinner } from '../components/ui/Spinner'
 import { Header } from '../components/layout/Header'
 
 export function ProjectsPage() {
-  const { projects, fetchProjects, createProject } = useProjectStore()
+  const { projects, fetchProjects, createProject, deleteProject } = useProjectStore()
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [creating, setCreating] = useState(false)
+
+  // Delete confirm state
+  const [confirmDelete, setConfirmDelete] = useState<Project | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -34,6 +40,19 @@ export function ProjectsPage() {
       console.error(err)
     } finally {
       setCreating(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return
+    setDeleting(true)
+    try {
+      await deleteProject(confirmDelete.id)
+      setConfirmDelete(null)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -71,32 +90,49 @@ export function ProjectsPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {projects.map((project) => (
-              <button
-                key={project.id}
-                onClick={() => navigate(`/projects/${project.id}/dashboard`)}
-                className="card p-5 text-left hover:border-accent-green/30 hover:bg-bg-elevated transition-all duration-150 group"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-accent-green/15 flex items-center justify-center text-accent-green font-bold text-lg">
-                    {project.name.charAt(0).toUpperCase()}
+              <div key={project.id} className="relative group">
+                <button
+                  onClick={() => navigate(`/projects/${project.id}/dashboard`)}
+                  className="card p-5 text-left w-full hover:border-accent-green/30 hover:bg-bg-elevated transition-all duration-150"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-accent-green/15 flex items-center justify-center text-accent-green font-bold text-lg">
+                      {project.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {project.members.length} member{project.members.length !== 1 ? 's' : ''}
+                    </span>
                   </div>
-                  <span className="text-xs text-gray-500">
-                    {project.members.length} member{project.members.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-                <h3 className="font-semibold group-hover:text-accent-green transition-colors">{project.name}</h3>
-                {project.description && (
-                  <p className="text-sm text-gray-400 mt-1 line-clamp-2">{project.description}</p>
-                )}
-                <p className="text-xs text-gray-600 mt-3">
-                  Created {formatDistanceToNow(new Date(project.created_at), { addSuffix: true })}
-                </p>
-              </button>
+                  <h3 className="font-semibold group-hover:text-accent-green transition-colors">{project.name}</h3>
+                  {project.description && (
+                    <p className="text-sm text-gray-400 mt-1 line-clamp-2">{project.description}</p>
+                  )}
+                  <p className="text-xs text-gray-600 mt-3">
+                    Created {formatDistanceToNow(new Date(project.created_at), { addSuffix: true })}
+                  </p>
+                </button>
+
+                {/* Delete button — top-right corner, visible on hover */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); setConfirmDelete(project) }}
+                  className="absolute top-3 right-3 w-7 h-7 rounded-lg bg-bg-elevated border border-bg-border
+                             flex items-center justify-center opacity-0 group-hover:opacity-100
+                             hover:bg-red-500/10 hover:border-red-500/40 hover:text-red-400
+                             transition-all duration-150 text-gray-500"
+                  title="Delete project"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
             ))}
           </div>
         )}
       </main>
 
+      {/* Create Project Modal */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="New Project" size="sm">
         <div className="flex flex-col gap-4">
           <Input
@@ -117,6 +153,34 @@ export function ProjectsPage() {
             <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
             <Button onClick={handleCreate} loading={creating} disabled={!name.trim()}>
               Create Project
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)} title="Delete Project" size="sm">
+        <div className="flex flex-col gap-5">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0 mt-0.5">
+              <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-semibold text-slate-800 dark:text-white">
+                Delete &ldquo;{confirmDelete?.name}&rdquo;?
+              </p>
+              <p className="text-sm text-gray-400 mt-1">
+                This will permanently remove the project and all its data — baseline, change requests, messages, meetings. This action cannot be undone.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button variant="secondary" onClick={() => setConfirmDelete(null)}>Cancel</Button>
+            <Button variant="danger" onClick={handleDelete} loading={deleting}>
+              Delete Project
             </Button>
           </div>
         </div>

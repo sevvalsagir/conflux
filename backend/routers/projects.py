@@ -118,6 +118,20 @@ def add_member(
     return membership
 
 
+@router.delete("/{project_id}")
+def delete_project(
+    project_id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Only the project manager can delete (archive) a project."""
+    require_manager(project_id, current_user, db)
+    project = _get_project_or_404(project_id, db)
+    project.is_archived = True
+    db.commit()
+    return {"message": "Project deleted."}
+
+
 @router.delete("/{project_id}/members/{user_id}")
 def remove_member(
     project_id: int,

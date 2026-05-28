@@ -65,6 +65,7 @@ interface ProjectState {
   fetchProjects: () => Promise<void>
   fetchProject: (id: number) => Promise<void>
   createProject: (name: string, description: string) => Promise<Project>
+  deleteProject: (id: number) => Promise<void>
 }
 
 export const useProjectStore = create<ProjectState>((set) => ({
@@ -85,6 +86,14 @@ export const useProjectStore = create<ProjectState>((set) => ({
     const res = await projectsApi.create(name, description)
     set((state) => ({ projects: [res.data, ...state.projects] }))
     return res.data
+  },
+
+  deleteProject: async (id) => {
+    await projectsApi.delete(id)
+    set((state) => ({
+      projects: state.projects.filter(p => p.id !== id),
+      currentProject: state.currentProject?.id === id ? null : state.currentProject,
+    }))
   },
 }))
 

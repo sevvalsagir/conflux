@@ -154,6 +154,10 @@ async def update_cr_status(
                                exclude_user_id=current_user.id,
                                reference_id=cr_id, reference_type="cr")
 
+    # When a scope-changing CR is approved → apply effect to baseline so drift is real
+    if body.status == models.CRStatus.approved:
+        _apply_cr_to_baseline(cr, project_id, db)
+
     db.commit()
 
     # When a CR is submitted → trigger AI analysis in the background
@@ -302,7 +306,57 @@ def _run_ai_analysis(cr_id: int, project_id: int):
         print(f"[AI] DB write error for CR {cr_id}: {e}")
 
 
-# ─── Helper ───────────────────────────────────────────────────────────────────
+# ─── Helpers ──────────────────────────────────────────────────────────────────
+
+def _apply_cr_to_baseline(cr: models.ChangeRequest, project_id: int, db: Session):
+    """
+    When an approved CR modifies scope or effort, write the change into the
+    live baseline rows so the drift-service comparison produces a real number.
+
+    feature_add / scope_change / feature_modify → add a new Feature row
+    feature_remove                               → mark matching feature removed
+    effort_change                                → boost first feature's effort_days by ~20 %
+    timeline_change                              → already counted via timeline_drift (no-op here)
+    """
+    baseline = db.query(models.Baseline).filter(
+        models.Baseline.project_id == project_id
+    ).first()
+
+    if not baseline or not baseline.is_locked:
+        return   # drift only meaningful after baseline is locked
+
+    if cr.cr_type in (
+        models.CRType.feature_add,
+        models.CRType.scope_change,
+        models.CRType.feature_modify,
+    ):
+        # Add a feature representing the approved change (bypasses lock intentionally)
+        feature = models.Feature(
+            baseline_id=baseline.id,
+            name=f"[CR] {cr.title[:80]}",
+            description=(cr.description or "")[:300],
+            effort_days=5,
+        )
+        db.add(feature)
+
+    elif cr.cr_type == models.CRType.feature_remove:
+        # Mark the first non-[CR] feature as removed (simple heuristic)
+        target = db.query(models.Feature).filter(
+            models.Feature.baseline_id == baseline.id,
+            models.Feature.status != models.FeatureStatus.removed,
+            ~models.Feature.name.like("[CR]%"),
+        ).first()
+        if target:
+            db.delete(target)
+
+    elif cr.cr_type == models.CRType.effort_change:
+        # Increase all feature effort proportionally (~20 % boost as a proxy)
+        features = db.query(models.Feature).filter(
+            models.Feature.baseline_id == baseline.id
+        ).all()
+        for f in features:
+            f.effort_days = round(f.effort_days * 1.20 + 2, 1)
+
 
 def _get_cr_or_404(cr_id: int, project_id: int, db: Session) -> models.ChangeRequest:
     cr = db.query(models.ChangeRequest).filter(

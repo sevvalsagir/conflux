@@ -30,6 +30,9 @@ export const projectsApi = {
   get: (id: number) =>
     client.get<Project>(`/projects/${id}`),
 
+  delete: (id: number) =>
+    client.delete(`/projects/${id}`),
+
   addMember: (projectId: number, email: string, role: UserRole) =>
     client.post(`/projects/${projectId}/members`, { email, role }),
 

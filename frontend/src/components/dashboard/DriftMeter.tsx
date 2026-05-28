@@ -5,32 +5,60 @@ interface DriftMeterProps {
   drift: DriftData
 }
 
-// Draws an arc-based gauge using SVG
+// Arc gauge — the arc sweeps from 210° to 150° (clockwise, 300° total).
+// At its lowest point it passes through 90° where y = cy + r = 68 + 54 = 122.
+// viewBox height is 130 so nothing clips.
 function ArcGauge({ value, color }: { value: number; color: string }) {
   const radius = 54
-  const cx = 64
-  const cy = 64
+  const cx = 70
+  const cy = 68
   const startAngle = 210
-  const endAngle = 330  // total sweep = 300 degrees
+  // total sweep = 300°
 
   const toRad = (deg: number) => (deg * Math.PI) / 180
-  const sweep = (value / 100) * 300
 
-  const describeArc = (start: number, end: number) => {
+  const describeArc = (start: number, sweep: number) => {
+    if (sweep <= 0) return ''
     const s = { x: cx + radius * Math.cos(toRad(start)), y: cy + radius * Math.sin(toRad(start)) }
-    const e = { x: cx + radius * Math.cos(toRad(start + end)), y: cy + radius * Math.sin(toRad(start + end)) }
-    const large = end > 180 ? 1 : 0
+    const e = { x: cx + radius * Math.cos(toRad(start + sweep)), y: cy + radius * Math.sin(toRad(start + sweep)) }
+    const large = sweep > 180 ? 1 : 0
     return `M ${s.x} ${s.y} A ${radius} ${radius} 0 ${large} 1 ${e.x} ${e.y}`
   }
 
+  const valueSweep = (value / 100) * 300
+
   return (
-    <svg viewBox="0 0 128 100" className="w-full max-w-[160px]">
-      {/* Background track */}
-      <path d={describeArc(startAngle, 300)} fill="none" stroke="#2e2e2e" strokeWidth="10" strokeLinecap="round" />
+    // text-slate-800 dark:text-white → fill="currentColor" in SVG text inherits this
+    <svg viewBox="0 0 140 130" className="w-full max-w-[168px] text-slate-800 dark:text-white">
+      {/* Background track — uses CSS variable so it adapts to theme */}
+      <path
+        d={describeArc(startAngle, 300)}
+        fill="none"
+        stroke="var(--border)"
+        strokeWidth="10"
+        strokeLinecap="round"
+      />
       {/* Value arc */}
-      <path d={describeArc(startAngle, sweep)} fill="none" stroke={color} strokeWidth="10" strokeLinecap="round" />
-      {/* Percentage text */}
-      <text x="64" y="68" textAnchor="middle" fill="white" fontSize="18" fontWeight="700">
+      {valueSweep > 0 && (
+        <path
+          d={describeArc(startAngle, valueSweep)}
+          fill="none"
+          stroke={color}
+          strokeWidth="10"
+          strokeLinecap="round"
+        />
+      )}
+      {/* Dot at start when value = 0 */}
+      {valueSweep === 0 && (
+        <circle
+          cx={cx + radius * Math.cos(toRad(startAngle))}
+          cy={cy + radius * Math.sin(toRad(startAngle))}
+          r="6"
+          fill={color}
+        />
+      )}
+      {/* Percentage — fill="currentColor" inherits from className above */}
+      <text x={cx} y={cy + 6} textAnchor="middle" fill="currentColor" fontSize="18" fontWeight="700">
         {Math.round(value)}%
       </text>
     </svg>
@@ -50,7 +78,7 @@ export function DriftMeter({ drift }: DriftMeterProps) {
   return (
     <div className="card p-5 flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Scope Drift</h3>
+        <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">Scope Drift</h3>
         <DriftLevelBadge level={drift.drift_level} />
       </div>
 
@@ -58,7 +86,7 @@ export function DriftMeter({ drift }: DriftMeterProps) {
         <div className="w-40 shrink-0">
           <ArcGauge value={drift.overall_drift} color={color} />
         </div>
-        <div className="flex flex-col gap-2 flex-1">
+        <div className="flex flex-col gap-3 flex-1">
           <DriftBar label="Features" value={drift.feature_drift} color={color} />
           <DriftBar label="Effort" value={drift.effort_drift} color={color} />
           <DriftBar label="Timeline" value={drift.timeline_drift} color={color} />
@@ -72,8 +100,8 @@ function DriftBar({ label, value, color }: { label: string; value: number; color
   return (
     <div className="flex flex-col gap-1">
       <div className="flex justify-between text-xs">
-        <span className="text-gray-400">{label}</span>
-        <span className="text-white font-medium">{value.toFixed(1)}%</span>
+        <span className="text-gray-500 dark:text-gray-400">{label}</span>
+        <span className="font-medium text-slate-700 dark:text-gray-200">{value.toFixed(1)}%</span>
       </div>
       <div className="h-1.5 bg-bg-border rounded-full overflow-hidden">
         <div
